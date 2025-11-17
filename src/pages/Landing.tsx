@@ -381,7 +381,8 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Footer */}
+            {/* Foote
+            r */}
             <footer className="border-t border-[#E8E8E8]/20 py-12 px-4 relative z-10">
                 <div className="container">
                     <div className="grid md:grid-cols-4 gap-8 mb-8">
@@ -430,7 +431,7 @@ export default function Home() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <Card variant="elevated" className="w-full max-w-md mx-4">
                         <Card.Header className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-gray-900">Launch App</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">Connect Wallet</h2>
                             <button
                                 onClick={() => setShowWalletModal(false)}
                                 className="text-gray-500 hover:text-gray-700 text-2xl"
