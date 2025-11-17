@@ -29,18 +29,16 @@ export default function Home() {
             setShowWalletModal(false);
             setTimeout(() => {
                 setLocation('/dashboard');
-            }, 500);
+            }, 800);
         } catch (error) {
             console.error('Failed to connect wallet:', error);
         }
     };
 
     const handleLaunchApp = () => {
-        if (wallet) {
-            setLocation('/dashboard');
-        } else {
-            setShowWalletModal(true);
-        }
+        // Always show modal first, regardless of wallet state
+        // Let user select wallet, then navigate after connection
+        setShowWalletModal(true);
     };
 
     return (
@@ -431,7 +429,7 @@ export default function Home() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <Card variant="elevated" className="w-full max-w-md mx-4">
                         <Card.Header className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-gray-900">Connect Wallet</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">Launch App</h2>
                             <button
                                 onClick={() => setShowWalletModal(false)}
                                 className="text-gray-500 hover:text-gray-700 text-2xl"
