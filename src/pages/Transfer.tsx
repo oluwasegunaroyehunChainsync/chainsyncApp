@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWalletStore, useTransferStore, notify } from '@/stores';
 import { SUPPORTED_CHAINS, SUPPORTED_ASSETS } from '@/constants';
+import { ChainId } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -8,8 +9,8 @@ import Input from '@/components/Input';
 export default function Transfer() {
   const { wallet } = useWalletStore();
   const { initializeTransfer, setTransferStatus } = useTransferStore();
-  const [sourceChain, setSourceChain] = useState<number>(1);
-  const [destChain, setDestChain] = useState<number>(137);
+  const [sourceChain, setSourceChain] = useState<ChainId>(1 as ChainId);
+  const [destChain, setDestChain] = useState<ChainId>(137 as ChainId);
   const [asset, setAsset] = useState('ETH');
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -70,7 +71,7 @@ export default function Transfer() {
                 <label className="block text-sm font-semibold text-gray-900 mb-2">From Chain</label>
                 <select
                   value={sourceChain}
-                  onChange={(e) => setSourceChain(Number(e.target.value))}
+                  onChange={(e) => setSourceChain(Number(e.target.value) as ChainId)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {Object.entries(SUPPORTED_CHAINS).map(([id, chain]) => (
@@ -122,7 +123,7 @@ export default function Transfer() {
                 <label className="block text-sm font-semibold text-gray-900 mb-2">To Chain</label>
                 <select
                   value={destChain}
-                  onChange={(e) => setDestChain(Number(e.target.value))}
+                  onChange={(e) => setDestChain(Number(e.target.value) as ChainId)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {Object.entries(SUPPORTED_CHAINS).map(([id, chain]) => (
@@ -187,11 +188,11 @@ export default function Transfer() {
             <Card.Body className="space-y-3">
               <div>
                 <p className="text-gray-600 text-sm">Connected Wallet</p>
-                <p className="text-sm font-mono text-gray-900 mt-1">{wallet?.address?.slice(0, 10)}...</p>
+                <p className="text-sm font-mono text-gray-900 mt-1">{wallet?.address ? wallet.address.slice(0, 10) : 'Not connected'}...</p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm">Available Balance</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{wallet?.balance} ETH</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{wallet?.balance || '0'} ETH</p>
               </div>
             </Card.Body>
           </Card>

@@ -24,7 +24,8 @@ export default function Home() {
 
     const handleConnectWallet = async () => {
         try {
-            await connectWallet();
+            // Mock wallet address and chainId for demo purposes
+            await connectWallet('0x1234567890123456789012345678901234567890', 1);
             setShowWalletModal(false);
             setTimeout(() => {
                 setLocation('/dashboard');
@@ -340,7 +341,7 @@ export default function Home() {
                         <span className="glow-magenta">For Developers</span>
                     </h2>
                     <div className="max-w-4xl mx-auto">
-                        <AnimatedCodeBlock />
+                        <AnimatedCodeBlock code={CodeExamples.crossChainTransfer} />
                     </div>
                 </div>
             </section>

@@ -6,7 +6,7 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
 
   return function executedFunction(...args: Parameters<T>) {
     const later = () => {
@@ -82,10 +82,6 @@ export function getChainColor(chainId: number): string {
   return colors[chainId] || 'from-gray-500 to-gray-600';
 }
 
-export function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength)}...`;
-}
 
 export function copyToClipboard(text: string): Promise<boolean> {
   return navigator.clipboard
