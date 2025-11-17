@@ -1,0 +1,367 @@
+import React, { useState } from 'react';
+import { useLocation } from 'wouter';
+import { useWalletStore } from '@/stores';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+
+interface Feature {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+interface Stat {
+  label: string;
+  value: string;
+  suffix?: string;
+}
+
+export default function Landing() {
+  const [, setLocation] = useLocation();
+  const { connectWallet, isConnecting, wallet } = useWalletStore();
+  const [showWalletModal, setShowWalletModal] = useState(false);
+
+  const handleConnectWallet = async () => {
+    try {
+      await connectWallet();
+      setShowWalletModal(false);
+      setTimeout(() => {
+        setLocation('/dashboard');
+      }, 500);
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+    }
+  };
+
+  const features: Feature[] = [
+    {
+      icon: '⚡',
+      title: 'Instant Settlements',
+      description: 'Execute cross-chain transfers in seconds with atomic settlement guarantees',
+    },
+    {
+      icon: '🔐',
+      title: 'Secure & Decentralized',
+      description: 'Non-custodial protocol with cryptographic verification and validator consensus',
+    },
+    {
+      icon: '💰',
+      title: 'Low Fees',
+      description: 'Minimal transaction costs with transparent fee structure and no hidden charges',
+    },
+    {
+      icon: '🌍',
+      title: 'Multi-Chain Support',
+      description: 'Seamless transfers across Ethereum, Polygon, BSC, Arbitrum, and more',
+    },
+    {
+      icon: '🎯',
+      title: 'Smart Routing',
+      description: 'Intelligent path optimization for best rates and fastest execution',
+    },
+    {
+      icon: '📊',
+      title: 'Governance',
+      description: 'Community-driven protocol upgrades through decentralized voting',
+    },
+  ];
+
+  const stats: Stat[] = [
+    { label: 'Total Value Locked', value: '$2.4', suffix: 'B' },
+    { label: 'Daily Transfers', value: '125K', suffix: '+' },
+    { label: 'Supported Chains', value: '9', suffix: '' },
+    { label: 'Active Validators', value: '450', suffix: '+' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">CS</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">ChainSync</span>
+            </div>
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-gray-600 hover:text-gray-900 font-medium">
+                Features
+              </a>
+              <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 font-medium">
+                How It Works
+              </a>
+              <a href="#stats" className="text-gray-600 hover:text-gray-900 font-medium">
+                Stats
+              </a>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowWalletModal(true)}
+                isLoading={isConnecting}
+              >
+                {wallet ? 'Connect Wallet   ' : 'Connect Wallet'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="mb-6 inline-block">
+            <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+              🚀 The Future of Cross-Chain Settlement
+            </span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Universal Cross-Chain
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {' '}Settlement Layer
+            </span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Transfer assets across blockchains instantly with atomic settlement guarantees. No intermediaries. No custody. Pure decentralization.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => setShowWalletModal(true)}
+              isLoading={isConnecting}
+              className="px-8"
+            >
+              {wallet ? 'Connect Wallet' : 'Connect Wallet'}
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+              className="px-8"
+            >
+              Learn More
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section id="stats" className="py-16 px-4 sm:px-6 lg:px-8 bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                  {stat.value}
+                  <span className="text-blue-600">{stat.suffix}</span>
+                </div>
+                <p className="text-gray-600 font-medium">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose ChainSync?</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Built for the next generation of decentralized finance
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} variant="elevated">
+                <Card.Body className="space-y-4">
+                  <div className="text-4xl">{feature.icon}</div>
+                  <h3 className="text-xl font-bold text-gray-900">{feature.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                </Card.Body>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold text-gray-900 mb-16 text-center">How It Works</h2>
+          <div className="space-y-8">
+            {[
+              {
+                step: '1',
+                title: 'Connect Your Wallet',
+                description: 'Link your Web3 wallet to access ChainSync. Your private keys never leave your device.',
+              },
+              {
+                step: '2',
+                title: 'Select Source & Destination',
+                description: 'Choose which chain you want to transfer from and which chain to transfer to.',
+              },
+              {
+                step: '3',
+                title: 'Approve & Execute',
+                description: 'Review the transfer details and confirm the transaction. Settlement happens atomically.',
+              },
+              {
+                step: '4',
+                title: 'Receive Assets',
+                description: 'Assets arrive on the destination chain within seconds. Track status in real-time.',
+              },
+            ].map((item, index) => (
+              <div key={index} className="flex gap-6 items-start">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-600 text-white font-bold text-lg">
+                    {item.step}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Supported Chains */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold text-gray-900 mb-12 text-center">Supported Blockchains</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {[
+              { name: 'Ethereum', icon: '⟠' },
+              { name: 'Polygon', icon: '◆' },
+              { name: 'BNB Chain', icon: '⬡' },
+              { name: 'Arbitrum', icon: '▲' },
+              { name: 'Avalanche', icon: '▲' },
+              { name: 'Fantom', icon: '◉' },
+              { name: 'Metis', icon: '◈' },
+              { name: 'Base', icon: '◉' },
+              { name: 'ZetaChain', icon: '◈' },
+            ].map((chain, index) => (
+              <Card key={index} variant="outlined">
+                <Card.Body className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="text-4xl mb-3">{chain.icon}</div>
+                  <p className="font-semibold text-gray-900">{chain.name}</p>
+                </Card.Body>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-white mb-6">Ready to Experience True Cross-Chain Settlement?</h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join thousands of users transferring assets across chains with ChainSync
+          </p>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => setShowWalletModal(true)}
+            isLoading={isConnecting}
+            className="px-8 bg-white text-blue-600 hover:bg-gray-100"
+          >
+            {wallet ? 'Go to Dashboard' : 'Connect Wallet Now'}
+          </Button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg"></div>
+                <span className="font-bold text-white">ChainSync</span>
+              </div>
+              <p className="text-sm">Universal cross-chain settlement layer</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="hover:text-white">Features</a></li>
+                <li><a href="#" className="hover:text-white">Pricing</a></li>
+                <li><a href="#" className="hover:text-white">Security</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Developers</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="hover:text-white">Documentation</a></li>
+                <li><a href="#" className="hover:text-white">API Reference</a></li>
+                <li><a href="#" className="hover:text-white">GitHub</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Community</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="#" className="hover:text-white">Discord</a></li>
+                <li><a href="#" className="hover:text-white">Twitter</a></li>
+                <li><a href="#" className="hover:text-white">Governance</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm">
+            <p>&copy; 2025 ChainSync. All rights reserved.</p>
+            <div className="flex gap-6 mt-4 md:mt-0">
+              <a href="#" className="hover:text-white">Privacy Policy</a>
+              <a href="#" className="hover:text-white">Terms of Service</a>
+              <a href="#" className="hover:text-white">Contact</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Wallet Connection Modal */}
+      {showWalletModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <Card variant="elevated" className="w-full max-w-md mx-4">
+            <Card.Header className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Connect Wallet</h2>
+              <button
+                onClick={() => setShowWalletModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </Card.Header>
+            <Card.Body className="space-y-3">
+              <button
+                onClick={handleConnectWallet}
+                disabled={isConnecting}
+                className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-900 disabled:opacity-50"
+              >
+                {isConnecting ? 'Connecting...' : '🦊 MetaMask'}
+              </button>
+              <button
+                onClick={handleConnectWallet}
+                disabled={isConnecting}
+                className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-900 disabled:opacity-50"
+              >
+                {isConnecting ? 'Connecting...' : '🔗 WalletConnect'}
+              </button>
+              <button
+                onClick={handleConnectWallet}
+                disabled={isConnecting}
+                className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-900 disabled:opacity-50"
+              >
+                {isConnecting ? 'Connecting...' : '💼 Coinbase Wallet'}
+              </button>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}

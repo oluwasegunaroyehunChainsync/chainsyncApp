@@ -1,0 +1,227 @@
+import React, { useState } from 'react';
+import { useWalletStore, useTransferStore, notify } from '@/stores';
+import { SUPPORTED_CHAINS, SUPPORTED_ASSETS } from '@/constants';
+import Card from '@/components/Card';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+
+export default function Transfer() {
+  const { wallet } = useWalletStore();
+  const { initializeTransfer, setTransferStatus } = useTransferStore();
+  const [sourceChain, setSourceChain] = useState<number>(1);
+  const [destChain, setDestChain] = useState<number>(137);
+  const [asset, setAsset] = useState('ETH');
+  const [amount, setAmount] = useState('');
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleTransfer = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      notify.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!recipientAddress) {
+      notify.error('Please enter a recipient address');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      initializeTransfer(sourceChain, destChain, amount, asset);
+      setTransferStatus('pending');
+      notify.success('Transfer initiated! Processing...');
+      
+      setTimeout(() => {
+        setTransferStatus('completed');
+        notify.success('Transfer completed successfully!');
+        setAmount('');
+        setRecipientAddress('');
+        setIsProcessing(false);
+      }, 2000);
+    } catch (error) {
+      notify.error('Transfer failed. Please try again.');
+      setIsProcessing(false);
+    }
+  };
+
+  const sourceChainName = SUPPORTED_CHAINS[sourceChain as keyof typeof SUPPORTED_CHAINS]?.name || 'Unknown';
+  const destChainName = SUPPORTED_CHAINS[destChain as keyof typeof SUPPORTED_CHAINS]?.name || 'Unknown';
+  const fee = amount ? (parseFloat(amount) * 0.001).toFixed(6) : '0';
+  const total = amount ? (parseFloat(amount) + parseFloat(fee)).toFixed(6) : '0';
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Cross-Chain Transfer</h1>
+        <p className="text-gray-600 mt-1">Transfer assets across blockchains with atomic settlement</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Transfer Form */}
+        <div className="lg:col-span-2">
+          <Card variant="elevated">
+            <Card.Header>
+              <h2 className="text-xl font-bold text-gray-900">Initiate Transfer</h2>
+            </Card.Header>
+            <Card.Body className="space-y-6">
+              {/* Source Chain */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">From Chain</label>
+                <select
+                  value={sourceChain}
+                  onChange={(e) => setSourceChain(Number(e.target.value))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {Object.entries(SUPPORTED_CHAINS).map(([id, chain]) => (
+                    <option key={id} value={id}>
+                      {chain.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Asset Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Asset</label>
+                <select
+                  value={asset}
+                  onChange={(e) => setAsset(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {Object.entries(SUPPORTED_ASSETS).map(([symbol, assetData]) => (
+                    <option key={symbol} value={symbol}>
+                      {symbol} - {assetData.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Amount */}
+              <Input
+                label="Amount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                suffix={asset}
+              />
+
+              {/* Recipient Address */}
+              <Input
+                label="Recipient Address"
+                type="text"
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+                placeholder="0x..."
+                helperText="The address that will receive the assets on the destination chain"
+              />
+
+              {/* Destination Chain */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">To Chain</label>
+                <select
+                  value={destChain}
+                  onChange={(e) => setDestChain(Number(e.target.value))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {Object.entries(SUPPORTED_CHAINS).map(([id, chain]) => (
+                    <option key={id} value={id}>
+                      {chain.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <Button
+                variant="primary"
+                fullWidth
+                size="lg"
+                isLoading={isProcessing}
+                onClick={handleTransfer}
+              >
+                {isProcessing ? 'Processing...' : 'Initiate Transfer'}
+              </Button>
+            </Card.Body>
+          </Card>
+        </div>
+
+        {/* Summary */}
+        <div className="space-y-6">
+          <Card variant="elevated">
+            <Card.Header>
+              <h2 className="text-xl font-bold text-gray-900">Transfer Summary</h2>
+            </Card.Header>
+            <Card.Body className="space-y-4">
+              <div>
+                <p className="text-gray-600 text-sm">From</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{sourceChainName}</p>
+              </div>
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-gray-600 text-sm">To</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{destChainName}</p>
+              </div>
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-gray-600 text-sm">Amount</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{amount || '0'} {asset}</p>
+              </div>
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-gray-600 text-sm">Network Fee (0.1%)</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{fee} {asset}</p>
+              </div>
+              <div className="border-t border-gray-200 pt-4 bg-blue-50 -mx-4 -mb-4 px-4 py-4 rounded-b-lg">
+                <p className="text-gray-600 text-sm">Total Cost</p>
+                <p className="text-2xl font-bold text-blue-600 mt-1">{total} {asset}</p>
+              </div>
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-gray-600 text-sm">Estimated Time</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">~2-5 minutes</p>
+              </div>
+            </Card.Body>
+          </Card>
+
+          <Card variant="outlined">
+            <Card.Header>
+              <h2 className="text-xl font-bold text-gray-900">Wallet Info</h2>
+            </Card.Header>
+            <Card.Body className="space-y-3">
+              <div>
+                <p className="text-gray-600 text-sm">Connected Wallet</p>
+                <p className="text-sm font-mono text-gray-900 mt-1">{wallet?.address?.slice(0, 10)}...</p>
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Available Balance</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{wallet?.balance} ETH</p>
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
+      </div>
+
+      {/* Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card variant="outlined">
+          <Card.Body className="space-y-2">
+            <p className="text-2xl">🔒</p>
+            <h3 className="font-semibold text-gray-900">Secure</h3>
+            <p className="text-sm text-gray-600">Non-custodial transfers with cryptographic verification</p>
+          </Card.Body>
+        </Card>
+        <Card variant="outlined">
+          <Card.Body className="space-y-2">
+            <p className="text-2xl">⚡</p>
+            <h3 className="font-semibold text-gray-900">Fast</h3>
+            <p className="text-sm text-gray-600">Atomic settlement across chains in minutes</p>
+          </Card.Body>
+        </Card>
+        <Card variant="outlined">
+          <Card.Body className="space-y-2">
+            <p className="text-2xl">💰</p>
+            <h3 className="font-semibold text-gray-900">Cheap</h3>
+            <p className="text-sm text-gray-600">Minimal fees with transparent pricing</p>
+          </Card.Body>
+        </Card>
+      </div>
+    </div>
+  );
+}
