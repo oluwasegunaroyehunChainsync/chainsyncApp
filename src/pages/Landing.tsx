@@ -11,7 +11,7 @@ import Card from "@/components/Card";
 export default function Home() {
     const [scrollY, setScrollY] = useState(0);
     const [, setLocation] = useLocation();
-    const { connectWallet, isConnecting, wallet } = useWalletStore();
+    const { connectWallet, isConnecting } = useWalletStore();
     const [showWalletModal, setShowWalletModal] = useState(false);
 
     useEffect(() => {
@@ -149,41 +149,41 @@ export default function Home() {
 
                 <div className="container relative z-10">
                     <div className="max-w-4xl mx-auto text-center animate-float-up">
-                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
+                        <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
                             <span className="glow-green">The Universal</span>
                             <br />
                             <span className="glow-cyan">Settlement Layer</span>
                         </h1>
 
-                        <p className="text-lg md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-base sm:text-lg md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
                             ChainSync enables frictionless token transfers between any blockchain networks without requiring approval or liquidity dependencies. <span className="glow-green font-bold">No wrap. No risk. Pure finality.</span>
                         </p>
 
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 px-4 sm:px-0">
                             <Button
                                 size="lg"
                                 onClick={handleLaunchApp}
-                                className="bg-[#E8E8E8] text-black hover:bg-[#E8E8E8]/80 font-bold text-base md:text-lg px-8"
+                                className="bg-[#E8E8E8] text-black hover:bg-[#E8E8E8]/80 font-bold text-base md:text-lg px-6 w-full sm:w-auto py-3"
                             >
                                 Launch App <ArrowRight className="ml-2 h-5 w-5" />
                             </Button>
-                            <Button size="lg" variant="outline" className="border-[#4A90E2] text-[#4A90E2] hover:bg-[#4A90E2]/10 font-bold text-base md:text-lg px-8">
+                            <Button size="lg" variant="outline" className="border-[#4A90E2] text-[#4A90E2] hover:bg-[#4A90E2]/10 font-bold text-base md:text-lg px-8 w-full sm:w-auto py-3">
                                 Read Whitepaper
                             </Button>
                         </div>
 
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-4 md:gap-8 mt-16">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8 mt-16">
                             <div className="border-l-2 border-[#E8E8E8] pl-4">
-                                <div className="text-2xl md:text-3xl font-bold glow-green">0.1%</div>
+                                <div className="text-xl sm:text-2xl md:text-3xl font-bold glow-green">0.1%</div>
                                 <div className="text-sm text-gray-400">Transaction Fee</div>
                             </div>
                             <div className="border-l-2 border-[#4A90E2] pl-4">
-                                <div className="text-2xl md:text-3xl font-bold glow-cyan">3-7s</div>
+                                <div className="text-xl sm:text-2xl md:text-3xl font-bold glow-cyan">3-7s</div>
                                 <div className="text-sm text-gray-400">Settlement Time</div>
                             </div>
                             <div className="border-l-2 border-[#708090] pl-4">
-                                <div className="text-2xl md:text-3xl font-bold glow-magenta">∞</div>
+                                <div className="text-xl sm:text-2xl md:text-3xl font-bold glow-magenta">∞</div>
                                 <div className="text-sm text-gray-400">Chain Support</div>
                             </div>
                         </div>

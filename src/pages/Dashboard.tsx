@@ -75,25 +75,28 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="container px-4 sm:px-6 md:px-8 mx-auto space-y-8">
       {/* Page Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Welcome to ChainSync. Your cross-chain settlement hub.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="text-left sm:text-right w-full sm:w-auto">
             <p className="text-sm text-gray-600">Connected Wallet</p>
-            <p className="text-lg font-mono font-semibold text-gray-900">{formatAddress(wallet.address)}</p>
+            <p className="text-sm sm:text-lg font-mono font-semibold text-gray-900 break-words">{formatAddress(wallet.address)}</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={disconnectWallet}
-          >
-            Disconnect
-          </Button>
+          <div className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={disconnectWallet}
+              className="w-full sm:w-auto"
+            >
+              Disconnect
+            </Button>
+          </div>
         </div>
       </div>
 

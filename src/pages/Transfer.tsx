@@ -52,13 +52,13 @@ export default function Transfer() {
   const total = amount ? (parseFloat(amount) + parseFloat(fee)).toFixed(6) : '0';
 
   return (
-    <div className="space-y-8">
+    <div className="container px-4 sm:px-6 md:px-8 mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Cross-Chain Transfer</h1>
         <p className="text-gray-600 mt-1">Transfer assets across blockchains with atomic settlement</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Transfer Form */}
         <div className="lg:col-span-2">
           <Card variant="elevated">
@@ -140,6 +140,7 @@ export default function Transfer() {
                 size="lg"
                 isLoading={isProcessing}
                 onClick={handleTransfer}
+                className="w-full md:w-auto"
               >
                 {isProcessing ? 'Processing...' : 'Initiate Transfer'}
               </Button>
@@ -188,7 +189,7 @@ export default function Transfer() {
             <Card.Body className="space-y-3">
               <div>
                 <p className="text-gray-600 text-sm">Connected Wallet</p>
-                <p className="text-sm font-mono text-gray-900 mt-1">{wallet?.address ? wallet.address.slice(0, 10) : 'Not connected'}...</p>
+                <p className="text-sm font-mono text-gray-900 mt-1 break-all">{wallet?.address ? wallet.address.slice(0, 10) : 'Not connected'}...</p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm">Available Balance</p>

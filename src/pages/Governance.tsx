@@ -34,15 +34,15 @@ export default function Governance() {
   const passedProposals = proposals.filter((p) => p.status === 'passed');
 
   return (
-    <div className="space-y-8">
+    <div className="container px-4 sm:px-6 md:px-8 mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Governance</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Governance</h1>
         <p className="text-gray-600 mt-1">Participate in protocol governance and shape the future of ChainSync</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Proposals List */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-6">
           {/* Active Proposals */}
           <Card variant="elevated">
             <Card.Header>

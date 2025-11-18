@@ -39,9 +39,9 @@ export default function Validators() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="container px-4 sm:px-6 md:px-8 mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Validators & Staking</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Validators & Staking</h1>
         <p className="text-gray-600 mt-1">Earn rewards by staking with network validators</p>
       </div>
 
@@ -77,8 +77,8 @@ export default function Validators() {
       )}
 
       {/* Validators List */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
           <Card variant="elevated">
             <Card.Header>
               <h2 className="text-xl font-bold text-gray-900">Available Validators</h2>
@@ -153,6 +153,7 @@ export default function Validators() {
                   fullWidth
                   isLoading={isStaking}
                   onClick={handleStake}
+                  className="w-full md:w-auto"
                 >
                   {isStaking ? 'Staking...' : 'Stake Now'}
                 </Button>

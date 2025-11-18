@@ -32,7 +32,7 @@ export function AnimatedCodeBlock({
   }, [code?.length, animationDelay]);
 
   return (
-    <div className="border-2 border-[#00FFFF] bg-[#0a0e27]/80 p-6 font-mono-code overflow-hidden">
+    <div className="border-2 border-[#00FFFF] bg-[#0a0e27]/80 p-6 font-mono-code overflow-auto max-h-[60vh]">
       <div className="flex items-center gap-2 mb-4 pb-4 border-b border-[#00FFFF]/30">
         <div className="w-3 h-3 rounded-full bg-[#FF00FF]" />
         <div className="w-3 h-3 rounded-full bg-[#00FF41]" />
@@ -44,20 +44,19 @@ export function AnimatedCodeBlock({
         {code?.slice(0, displayedLines).map((line, idx) => (
           <div
             key={idx}
-            className="animate-float-up text-sm leading-relaxed"
+            className="animate-float-up text-sm leading-relaxed flex"
             style={{
               animationDelay: `${idx * 50}ms`,
             }}
           >
-            <span className="text-gray-500 mr-4 inline-block w-6 text-right">{idx + 1}</span>
-            <CodeLine content={line} />
+            <span className="text-gray-500 mr-4 inline-block w-6 text-right select-none">{idx + 1}</span>
+            <span className="whitespace-pre text-sm leading-relaxed break-words flex-1"><CodeLine content={line} /></span>
           </div>
         ))}
+
         {displayedLines < code?.length && (
-          <div className="text-[#00FF41] animate-pulse">
-            <span className="text-gray-500 mr-4 inline-block w-6 text-right">
-              {displayedLines + 1}
-            </span>
+          <div className="text-[#00FF41] animate-pulse flex">
+            <span className="text-gray-500 mr-4 inline-block w-6 text-right select-none">{displayedLines + 1}</span>
             <span className="inline-block w-2 h-4 bg-[#00FF41] animate-pulse" />
           </div>
         )}
@@ -73,7 +72,7 @@ function CodeLine({ content }: { content: string }) {
   );
 
   return (
-    <>
+    <span className="whitespace-pre">
       {parts.map((part, idx) => {
         if (!part) return null;
 
@@ -116,7 +115,7 @@ function CodeLine({ content }: { content: string }) {
         // Default text
         return <span key={idx}>{part}</span>;
       })}
-    </>
+    </span>
   );
 }
 

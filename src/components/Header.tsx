@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuthStore, useWalletStore } from '@/stores';
+import { useUIStore } from '@/stores/uiStore';
 import { formatAddress, formatCurrency } from '@/utils';
 import { useLocation } from 'wouter';
 
-export default function Header() {
+export default function Header({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) {
   const { user, logout } = useAuthStore();
   const { wallet } = useWalletStore();
   const [, setLocation] = useLocation();
@@ -15,10 +16,28 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
+    <header className="bg-white border-b border-gray-200 shadow-sm relative z-60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-8">
+            {/* Mobile menu button */}
+            <div className="mr-2 md:hidden">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.debug('[Header] mobile menu button clicked (hook)');
+                  const setOpen = useUIStore.getState().setMobileSidebarOpen;
+                  setOpen(true);
+                }}
+                className="p-2 rounded-md hover:bg-gray-100"
+                aria-label="Open menu"
+              >
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">CS</span>
