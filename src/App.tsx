@@ -17,6 +17,7 @@ import Transfer from '@/pages/Transfer';
 import Validators from '@/pages/Validators';
 import Governance from '@/pages/Governance';
 import NotFound from '@/pages/NotFound';
+import { Web3AuthProvider } from "@/contexts/Web3AuthContext";
 
 /**
  * Main Router Component
@@ -123,6 +124,7 @@ function Router() {
  */
 function App() {
     return (
+        <web3AuthProvider>
         <ErrorBoundary>
             <div className="min-h-screen bg-white">
                 {/* Global Notification Center */}
@@ -132,6 +134,7 @@ function App() {
                 <Router />
             </div>
         </ErrorBoundary>
+        </web3AuthProvider>
     );
 }
 

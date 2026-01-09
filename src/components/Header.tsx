@@ -1,18 +1,53 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore, useWalletStore } from '@/stores';
 import { useUIStore } from '@/stores/uiStore';
 import { formatAddress, formatCurrency } from '@/utils';
 import { useLocation } from 'wouter';
+import { getProvider } from '@/utils/web3';
+import { ethers } from 'ethers';
 
 export default function Header({ onOpenMobileMenu }: { onOpenMobileMenu?: () => void }) {
   const { user, logout } = useAuthStore();
-  const { wallet } = useWalletStore();
+  const { wallet, disconnectWallet, updateBalance } = useWalletStore();
   const [, setLocation] = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
+  // Fetch and update real balance from blockchain
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!wallet?.address) return;
+
+      try {
+        const provider = getProvider();
+        if (provider) {
+          const balanceBigInt = await provider.getBalance(wallet.address);
+          const balance = ethers.formatEther(balanceBigInt);
+          updateBalance(balance);
+        }
+      } catch (error) {
+        console.error('Failed to fetch balance in Header:', error);
+      }
+    };
+
+    fetchBalance();
+    // Refresh balance every 30 seconds to keep in sync with Dashboard
+    const interval = setInterval(fetchBalance, 30000);
+    return () => clearInterval(interval);
+  }, [wallet?.address, updateBalance]);
+
   const handleLogout = () => {
-    logout();
-    setLocation('/login');
+    try {
+      logout();
+      disconnectWallet();
+      // Clear Web3Auth storage
+      localStorage.removeItem('chainsync_auth');
+      // Navigate to home page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force navigation even if logout fails
+      window.location.href = '/';
+    }
   };
 
   return (
@@ -51,7 +86,7 @@ export default function Header({ onOpenMobileMenu }: { onOpenMobileMenu?: () => 
               <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-sm font-medium text-gray-700">{formatAddress(wallet.address)}</span>
-                <span className="text-sm text-gray-500">{formatCurrency(wallet.balance)}</span>
+                <span className="text-sm text-gray-500">{formatCurrency(wallet.balance)} ETH</span>
               </div>
             )}
 

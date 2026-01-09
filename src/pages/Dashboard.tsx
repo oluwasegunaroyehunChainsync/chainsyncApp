@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useWalletStore, useTransferStore, useValidatorStore, useGovernanceStore } from '@/stores';
-import { formatCurrency, formatAddress } from '@/utils';
+import { useEffect, useState } from 'react';
+import { useWalletStore, useTransferStore, useGovernanceStore } from '@/stores';
+import { formatAddress } from '@/utils';
+import { getProvider, getUserValidatorInfo } from '@/utils/web3';
+import { ethers } from 'ethers';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 
@@ -15,44 +17,101 @@ interface StatCard {
 export default function Dashboard() {
   const { wallet, disconnectWallet } = useWalletStore();
   const { transfers } = useTransferStore();
-  const { stakingPositions, getTotalStaked, getTotalRewards } = useValidatorStore();
   const { proposals } = useGovernanceStore();
   const [stats, setStats] = useState<StatCard[]>([]);
+  const [realBalance, setRealBalance] = useState<string>('0.00');
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [realStakingData, setRealStakingData] = useState({ stake: '0', rewards: '0' });
+  const [isLoadingStaking, setIsLoadingStaking] = useState(false);
+
+  // Fetch real wallet balance from blockchain
+  useEffect(() => {
+    const fetchRealBalance = async () => {
+      if (!wallet?.address) return;
+
+      setIsLoadingBalance(true);
+      try {
+        const provider = getProvider();
+        if (provider) {
+          const balance = await provider.getBalance(wallet.address);
+          const balanceInEth = ethers.formatEther(balance);
+          setRealBalance(balanceInEth);
+        }
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+        setRealBalance('0.00');
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchRealBalance();
+    // Refresh balance every 30 seconds
+    const interval = setInterval(fetchRealBalance, 30000);
+    return () => clearInterval(interval);
+  }, [wallet?.address]);
+
+  // Fetch real staking data from ValidatorRegistry contract
+  useEffect(() => {
+    const fetchStakingData = async () => {
+      if (!wallet?.address) return;
+
+      setIsLoadingStaking(true);
+      try {
+        const data = await getUserValidatorInfo(wallet.address);
+        setRealStakingData({ stake: data.stake, rewards: data.rewards });
+      } catch (error) {
+        console.error('Failed to fetch staking data:', error);
+        setRealStakingData({ stake: '0', rewards: '0' });
+      } finally {
+        setIsLoadingStaking(false);
+      }
+    };
+
+    fetchStakingData();
+    // Refresh staking data every 30 seconds
+    const interval = setInterval(fetchStakingData, 30000);
+    return () => clearInterval(interval);
+  }, [wallet?.address]);
 
   useEffect(() => {
     if (wallet) {
+      const activeTransfersCount = transfers.filter((t) =>
+        t.status === 'pending' || t.status === 'processing'
+      ).length;
+
       setStats([
         {
           label: 'Wallet Balance',
-          value: wallet.balance ? `$${formatCurrency(parseFloat(wallet.balance))}` : '$0.00',
-          change: '+12.5%',
+          value: isLoadingBalance ? 'Loading...' : `${parseFloat(realBalance).toFixed(4)} ETH`,
+          change: '',
           icon: '💰',
           color: 'from-blue-500 to-blue-600',
         },
         {
           label: 'Total Staked',
-          value: `${getTotalStaked()} ETH`,
-          change: '+8.2%',
+          value: isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`,
+          change: '',
           icon: '📈',
           color: 'from-green-500 to-green-600',
         },
         {
           label: 'Rewards Earned',
-          value: `${getTotalRewards()} ETH`,
-          change: '+5.1%',
+          value: isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`,
+          change: '',
           icon: '🎁',
           color: 'from-purple-500 to-purple-600',
         },
         {
           label: 'Active Transfers',
-          value: transfers.filter((t) => t.status === 'pending').length.toString(),
-          change: '-2.3%',
+          value: activeTransfersCount.toString(),
+          change: '',
           icon: '🔄',
           color: 'from-orange-500 to-orange-600',
         },
       ]);
     }
-  }, [wallet, getTotalStaked, getTotalRewards, transfers]);
+  }, [wallet, transfers, realBalance, isLoadingBalance, realStakingData, isLoadingStaking]);
 
   const recentTransfers = transfers.slice(0, 5);
   const activeProposals = proposals.filter((p) => p.status === 'active');
@@ -113,10 +172,12 @@ export default function Dashboard() {
                 {stat.icon}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-600 text-sm font-semibold">{stat.change}</span>
-              <span className="text-gray-500 text-sm">from last month</span>
-            </div>
+            {stat.change && (
+              <div className="flex items-center gap-2">
+                <span className="text-green-600 text-sm font-semibold">{stat.change}</span>
+                <span className="text-gray-500 text-sm">from last month</span>
+              </div>
+            )}
           </Card>
         ))}
       </div>
@@ -197,11 +258,15 @@ export default function Dashboard() {
             <Card.Body className="space-y-4">
               <div>
                 <p className="text-gray-600 text-sm">Total Staked</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{getTotalStaked()} ETH</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`}
+                </p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm">Unclaimed Rewards</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">{getTotalRewards()} ETH</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">
+                  {isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`}
+                </p>
               </div>
               <Button variant="primary" fullWidth>
                 Claim Rewards
@@ -275,11 +340,23 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-gray-600 text-sm">Network</p>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{wallet.chainId === 1 ? 'Ethereum Mainnet' : 'Connected'}</p>
+            <p className="text-sm font-semibold text-gray-900 mt-1">
+              {(() => {
+                const chainId = wallet.chainId as number;
+                if (chainId === 1) return 'Ethereum Mainnet';
+                if (chainId === 137) return 'Polygon';
+                if (chainId === 42161) return 'Arbitrum';
+                if (chainId === 10) return 'Optimism';
+                if (chainId === 31337) return 'Localhost';
+                return `Chain ${chainId}`;
+              })()}
+            </p>
           </div>
           <div>
             <p className="text-gray-600 text-sm">Balance</p>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{wallet.balance} ETH</p>
+            <p className="text-sm font-semibold text-gray-900 mt-1">
+              {isLoadingBalance ? 'Loading...' : `${parseFloat(realBalance).toFixed(4)} ETH`}
+            </p>
           </div>
         </Card.Body>
       </Card>

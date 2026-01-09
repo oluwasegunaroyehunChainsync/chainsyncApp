@@ -7,12 +7,21 @@ import { AnimatedNetworkGrid } from "@/components/AnimatedNetworkGrid";
 import { AnimatedHeroNetwork } from "@/components/AnimatedHeroNetwork";
 import { AnimatedCodeBlock, CodeExamples } from "@/components/AnimatedCodeBlock";
 import Card from "@/components/Card";
+import { useWeb3Auth } from "@/hooks/useWeb3Auth";
 
 export default function Home() {
     const [scrollY, setScrollY] = useState(0);
     const [, setLocation] = useLocation();
-    const { connectWallet, isConnecting } = useWalletStore();
+    const { connectWallet } = useWalletStore();
     const [showWalletModal, setShowWalletModal] = useState(false);
+    const [connectionError, setConnectionError] = useState<string | null>(null);
+
+    // Initialize Web3 Auth hook
+    const web3Auth = useWeb3Auth({
+        apiUrl: 'http://localhost:3001',
+        storageKey: 'chainsync_auth',
+        autoRefresh: true,
+    });
 
     useEffect(() => {
         const handleScroll = () => setScrollY(window.scrollY);
@@ -24,14 +33,28 @@ export default function Home() {
 
     const handleConnectWallet = async () => {
         try {
-            // Mock wallet address and chainId for demo purposes
-            await connectWallet('0x1234567890123456789012345678901234567890', 1);
-            setShowWalletModal(false);
-            setTimeout(() => {
-                setLocation('/dashboard');
-            }, 800);
-        } catch (error) {
+            setConnectionError(null);
+
+            // Use the real Web3Auth hook to connect wallet
+            await web3Auth.connectWallet();
+
+            // Get the connected address and chain ID
+            const address = web3Auth.address;
+            const chainId = web3Auth.chainId;
+
+            if (address && chainId) {
+                // Update wallet store with connected wallet info
+                await connectWallet(address, chainId as any);
+
+                // Close modal and navigate to dashboard
+                setShowWalletModal(false);
+                setTimeout(() => {
+                    setLocation('/dashboard');
+                }, 500);
+            }
+        } catch (error: any) {
             console.error('Failed to connect wallet:', error);
+            setConnectionError(error?.message || 'Failed to connect wallet. Please try again.');
         }
     };
 
@@ -429,36 +452,130 @@ export default function Home() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <Card variant="elevated" className="w-full max-w-md mx-4">
                         <Card.Header className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-gray-900">Launch App</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">Connect Wallet</h2>
                             <button
-                                onClick={() => setShowWalletModal(false)}
+                                onClick={() => {
+                                    setShowWalletModal(false);
+                                    setConnectionError(null);
+                                }}
                                 className="text-gray-500 hover:text-gray-700 text-2xl"
                             >
                                 ×
                             </button>
                         </Card.Header>
-                        <Card.Body className="space-y-3">
-                            <button
-                                onClick={handleConnectWallet}
-                                disabled={isConnecting}
-                                className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-900 disabled:opacity-50"
-                            >
-                                {isConnecting ? 'Connecting...' : '🦊 MetaMask'}
-                            </button>
-                            <button
-                                onClick={handleConnectWallet}
-                                disabled={isConnecting}
-                                className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-900 disabled:opacity-50"
-                            >
-                                {isConnecting ? 'Connecting...' : '🔗 WalletConnect'}
-                            </button>
-                            <button
-                                onClick={handleConnectWallet}
-                                disabled={isConnecting}
-                                className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-900 disabled:opacity-50"
-                            >
-                                {isConnecting ? 'Connecting...' : '💼 Coinbase Wallet'}
-                            </button>
+                        <Card.Body className="space-y-4">
+                            {connectionError && (
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <p className="text-sm text-red-600">{connectionError}</p>
+                                </div>
+                            )}
+
+                            <p className="text-sm text-gray-600">
+                                Connect your wallet to access ChainSync. You'll be asked to sign a message to verify ownership.
+                            </p>
+
+                            {/* Wallet Options */}
+                            <div className="space-y-2">
+                                {/* MetaMask */}
+                                <button
+                                    onClick={handleConnectWallet}
+                                    disabled={web3Auth.isLoading}
+                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-orange-500 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                                >
+                                    <span className="text-2xl">🦊</span>
+                                    <span className="flex-1 text-left">
+                                        {web3Auth.isLoading ? (
+                                            <span className="flex items-center gap-2">
+                                                <span className="animate-spin">⟳</span>
+                                                Connecting...
+                                            </span>
+                                        ) : (
+                                            'MetaMask'
+                                        )}
+                                    </span>
+                                    {window.ethereum?.isMetaMask && (
+                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                            Detected
+                                        </span>
+                                    )}
+                                </button>
+
+                                {/* Trust Wallet */}
+                                <button
+                                    onClick={handleConnectWallet}
+                                    disabled={web3Auth.isLoading}
+                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-500 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                                >
+                                    <span className="text-2xl">💙</span>
+                                    <span className="flex-1 text-left">Trust Wallet</span>
+                                    {window.ethereum?.isTrust && (
+                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                            Detected
+                                        </span>
+                                    )}
+                                </button>
+
+                                {/* Coinbase Wallet */}
+                                <button
+                                    onClick={handleConnectWallet}
+                                    disabled={web3Auth.isLoading}
+                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-600 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                                >
+                                    <span className="text-2xl">🔵</span>
+                                    <span className="flex-1 text-left">Coinbase Wallet</span>
+                                    {window.ethereum?.isCoinbaseWallet && (
+                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                            Detected
+                                        </span>
+                                    )}
+                                </button>
+
+                                {/* Phantom */}
+                                <button
+                                    onClick={handleConnectWallet}
+                                    disabled={web3Auth.isLoading}
+                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-purple-500 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                                >
+                                    <span className="text-2xl">👻</span>
+                                    <span className="flex-1 text-left">Phantom</span>
+                                    {window.ethereum?.isPhantom && (
+                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                            Detected
+                                        </span>
+                                    )}
+                                </button>
+
+                                {/* WalletConnect - Coming Soon */}
+                                <button
+                                    disabled={true}
+                                    className="w-full p-4 border border-gray-200 rounded-lg bg-gray-50 font-medium text-gray-400 cursor-not-allowed flex items-center gap-3"
+                                >
+                                    <span className="text-2xl">🔗</span>
+                                    <span className="flex-1 text-left">WalletConnect</span>
+                                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                                        Coming Soon
+                                    </span>
+                                </button>
+                            </div>
+
+                            <div className="text-xs text-gray-500 text-center pt-2">
+                                {!window.ethereum && (
+                                    <p className="text-orange-600">
+                                        ⚠️ No wallet detected. Please install a Web3 wallet to continue.
+                                    </p>
+                                )}
+                                <p className="mt-2">
+                                    New to Web3 wallets?{' '}
+                                    <a
+                                        href="https://metamask.io/download"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        Get MetaMask
+                                    </a>
+                                </p>
+                            </div>
                         </Card.Body>
                     </Card>
                 </div>

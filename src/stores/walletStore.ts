@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Wallet, ChainId, Asset } from '@/types';
 import { SUPPORTED_CHAINS, SUPPORTED_ASSETS } from '@/constants';
+import { getProvider } from '@/utils/web3';
+import { ethers } from 'ethers';
 
 interface WalletState {
   wallet: Wallet | null;
@@ -32,11 +34,22 @@ export const useWalletStore = create<WalletState>()(
       connectWallet: async (address: string, chainId: ChainId) => {
         set({ isConnecting: true, error: null });
         try {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          // Fetch real balance from blockchain
+          let balance = '0';
+          try {
+            const provider = getProvider();
+            if (provider) {
+              const balanceBigInt = await provider.getBalance(address);
+              balance = ethers.formatEther(balanceBigInt);
+            }
+          } catch (balanceError) {
+            console.error('Failed to fetch balance:', balanceError);
+            balance = '0';
+          }
 
           const wallet: Wallet = {
             address,
-            balance: '2.5',
+            balance,
             chainId,
             isConnected: true,
           };

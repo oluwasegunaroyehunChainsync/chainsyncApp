@@ -2,15 +2,34 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Validator, StakingPosition } from '@/types';
 import { generateId } from '@/utils';
+import { apiClient } from '@/lib/api';
 
 interface ValidatorState {
   validators: Validator[];
   stakingPositions: StakingPosition[];
+  activeValidatorCount: number;
   isLoading: boolean;
   error: string | null;
-  
+
+  // Fetch validators from backend
   fetchValidators: () => Promise<void>;
-  stake: (validatorId: string, amount: string) => Promise<void>;
+
+  // Get validator info from backend
+  fetchValidatorInfo: (address: string) => Promise<void>;
+
+  // Check if validator is active
+  checkValidatorActive: (address: string) => Promise<boolean>;
+
+  // Get validator stake amount
+  fetchValidatorStake: (address: string) => Promise<void>;
+
+  // Register as validator
+  registerValidator: (validatorAddress: string, stakeAmount: string) => Promise<void>;
+
+  // Stake to validator
+  stake: (validatorAddress: string, amount: string) => Promise<void>;
+
+  // Local functions
   unstake: (positionId: string) => Promise<void>;
   claimRewards: (positionId: string) => Promise<void>;
   getValidatorById: (id: string) => Validator | undefined;
@@ -22,104 +41,126 @@ interface ValidatorState {
 export const useValidatorStore = create<ValidatorState>()(
   persist(
     (set, get) => ({
-      validators: [
-        {
-          id: 'validator_1',
-          name: 'Staking Rewards',
-          address: '0x' + 'a'.repeat(40),
-          commission: '5%',
-          apy: '12.5%',
-          stakedAmount: '2500000',
-          delegators: 1250,
-          uptime: '99.9%',
-          totalRewards: '125000',
-          description: 'Professional validator with excellent track record',
-          website: 'https://stakingrewards.com',
-        },
-        {
-          id: 'validator_2',
-          name: 'Lido Finance',
-          address: '0x' + 'b'.repeat(40),
-          commission: '10%',
-          apy: '11.8%',
-          stakedAmount: '5000000',
-          delegators: 2500,
-          uptime: '99.95%',
-          totalRewards: '590000',
-          description: 'Largest liquid staking provider',
-          website: 'https://lido.fi',
-        },
-        {
-          id: 'validator_3',
-          name: 'Coinbase Cloud',
-          address: '0x' + 'c'.repeat(40),
-          commission: '15%',
-          apy: '11.2%',
-          stakedAmount: '3000000',
-          delegators: 800,
-          uptime: '99.8%',
-          totalRewards: '336000',
-          description: 'Backed by Coinbase, highly secure',
-          website: 'https://coinbase.com',
-        },
-        {
-          id: 'validator_4',
-          name: 'Kraken Staking',
-          address: '0x' + 'd'.repeat(40),
-          commission: '12%',
-          apy: '12.1%',
-          stakedAmount: '1800000',
-          delegators: 600,
-          uptime: '99.85%',
-          totalRewards: '217800',
-          description: 'Kraken exchange staking service',
-          website: 'https://kraken.com',
-        },
-      ],
-      stakingPositions: [
-        {
-          id: 'position_1',
-          validatorId: 'validator_1',
-          validatorName: 'Staking Rewards',
-          amount: '10',
-          rewards: '1.25',
-          apy: '12.5%',
-          claimableRewards: '0.5',
-          createdAt: new Date(Date.now() - 2592000000).toISOString(),
-          lastRewardClaim: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ],
+      validators: [],
+      stakingPositions: [],
+      activeValidatorCount: 0,
       isLoading: false,
       error: null,
 
       fetchValidators: async () => {
         set({ isLoading: true, error: null });
         try {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          set({ isLoading: false });
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch validators';
+          const validators = await apiClient.getValidators() as any[];
+          const count = await apiClient.getActiveValidatorCount() as any;
+
+          set({
+            validators: validators || [],
+            activeValidatorCount: count?.count || 0,
+            isLoading: false
+          });
+        } catch (error: any) {
+          const errorMessage = error?.message || 'Failed to fetch validators';
           set({ error: errorMessage, isLoading: false });
           throw error;
         }
       },
 
-      stake: async (validatorId: string, amount: string) => {
+      fetchValidatorInfo: async (address: string) => {
         set({ isLoading: true, error: null });
         try {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          const validatorInfo = await apiClient.getValidatorInfo(address) as any;
 
-          const validator = get().validators.find((v) => v.id === validatorId);
-          if (!validator) throw new Error('Validator not found');
+          set((state) => ({
+            validators: state.validators.map(v =>
+              v.address === address ? { ...v, ...validatorInfo } : v
+            ),
+            isLoading: false,
+          }));
+        } catch (error: any) {
+          const errorMessage = error?.message || 'Failed to fetch validator info';
+          set({ error: errorMessage, isLoading: false });
+          throw error;
+        }
+      },
 
-          const apy = validator.apy;
+      checkValidatorActive: async (address: string) => {
+        try {
+          const result = await apiClient.isValidatorActive(address) as any;
+          return result?.isActive || false;
+        } catch (error: any) {
+          console.error('Failed to check validator status:', error);
+          return false;
+        }
+      },
+
+      fetchValidatorStake: async (address: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const stakeInfo = await apiClient.getValidatorStake(address) as any;
+
+          set((state) => ({
+            validators: state.validators.map(v =>
+              v.address === address ? { ...v, stakedAmount: stakeInfo?.stake || '0' } : v
+            ),
+            isLoading: false,
+          }));
+        } catch (error: any) {
+          const errorMessage = error?.message || 'Failed to fetch validator stake';
+          set({ error: errorMessage, isLoading: false });
+          throw error;
+        }
+      },
+
+      registerValidator: async (validatorAddress: string, stakeAmount: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const result = await apiClient.registerValidator({
+            validatorAddress,
+            stakeAmount,
+          }) as any;
+
+          // Create validator object
+          const validator: Validator = {
+            id: generateId('validator_'),
+            name: 'Your Validator',
+            address: validatorAddress,
+            commission: '5%',
+            apy: '12%',
+            stakedAmount: stakeAmount,
+            delegators: 0,
+            uptime: '100%',
+            totalRewards: '0',
+            description: 'New validator',
+          };
+
+          set((state) => ({
+            validators: [...state.validators, validator],
+            isLoading: false,
+          }));
+        } catch (error: any) {
+          const errorMessage = error?.message || 'Failed to register validator';
+          set({ error: errorMessage, isLoading: false });
+          throw error;
+        }
+      },
+
+      stake: async (validatorAddress: string, amount: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const result = await apiClient.stakeValidator({
+            validatorAddress,
+            amount,
+          }) as any;
+
+          const validator = get().validators.find((v) => v.address === validatorAddress);
+
           const position: StakingPosition = {
             id: generateId('position_'),
-            validatorId,
-            validatorName: validator.name,
+            validatorId: validator?.id || validatorAddress,
+            validatorName: validator?.name || 'Unknown Validator',
             amount,
             rewards: '0',
-            apy,
+            apy: validator?.apy || '0%',
             claimableRewards: '0',
             createdAt: new Date().toISOString(),
           };
@@ -128,8 +169,8 @@ export const useValidatorStore = create<ValidatorState>()(
             stakingPositions: [...state.stakingPositions, position],
             isLoading: false,
           }));
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Staking failed';
+        } catch (error: any) {
+          const errorMessage = error?.message || 'Staking failed';
           set({ error: errorMessage, isLoading: false });
           throw error;
         }
@@ -138,13 +179,14 @@ export const useValidatorStore = create<ValidatorState>()(
       unstake: async (positionId: string) => {
         set({ isLoading: true, error: null });
         try {
+          // In real implementation, call backend API
           await new Promise((resolve) => setTimeout(resolve, 500));
           set((state) => ({
             stakingPositions: state.stakingPositions.filter((p) => p.id !== positionId),
             isLoading: false,
           }));
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unstaking failed';
+        } catch (error: any) {
+          const errorMessage = error?.message || 'Unstaking failed';
           set({ error: errorMessage, isLoading: false });
           throw error;
         }
@@ -153,6 +195,7 @@ export const useValidatorStore = create<ValidatorState>()(
       claimRewards: async (positionId: string) => {
         set({ isLoading: true, error: null });
         try {
+          // In real implementation, call backend API
           await new Promise((resolve) => setTimeout(resolve, 500));
           set((state) => ({
             stakingPositions: state.stakingPositions.map((p) =>
@@ -167,8 +210,8 @@ export const useValidatorStore = create<ValidatorState>()(
             ),
             isLoading: false,
           }));
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Claim failed';
+        } catch (error: any) {
+          const errorMessage = error?.message || 'Claim failed';
           set({ error: errorMessage, isLoading: false });
           throw error;
         }

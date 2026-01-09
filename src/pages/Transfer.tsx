@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useWalletStore, useTransferStore, notify } from '@/stores';
 import { SUPPORTED_CHAINS, SUPPORTED_ASSETS } from '@/constants';
 import { ChainId } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import {
+  approveToken,
+  checkAllowance,
+  executeSameChainTransfer,
+  executeCrossChainTransfer,
+} from '@/utils/web3';
+import { ethers } from 'ethers';
+import { apiClient } from '@/lib/api';
 
 export default function Transfer() {
   const { wallet } = useWalletStore();
-  const { initializeTransfer, setTransferStatus } = useTransferStore();
+  const { initiateCrossChainTransfer, initiateSameChainTransfer, isLoading } = useTransferStore();
   const [sourceChain, setSourceChain] = useState<ChainId>(1 as ChainId);
   const [destChain, setDestChain] = useState<ChainId>(137 as ChainId);
-  const [asset, setAsset] = useState('ETH');
+  const [asset, setAsset] = useState('CST'); // Default to CST token for testing
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleTransfer = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -27,22 +34,84 @@ export default function Transfer() {
       return;
     }
 
-    setIsProcessing(true);
+    if (!wallet?.address) {
+      notify.error('Please connect your wallet first');
+      return;
+    }
+
+    const CHAINSYNC_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+
     try {
-      initializeTransfer(sourceChain, destChain, amount, asset);
-      setTransferStatus('pending');
-      notify.success('Transfer initiated! Processing...');
-      
-      setTimeout(() => {
-        setTransferStatus('completed');
-        notify.success('Transfer completed successfully!');
-        setAmount('');
-        setRecipientAddress('');
-        setIsProcessing(false);
-      }, 2000);
-    } catch (error) {
-      notify.error('Transfer failed. Please try again.');
-      setIsProcessing(false);
+      // Get token address from SUPPORTED_ASSETS
+      const tokenAddress = SUPPORTED_ASSETS[asset as keyof typeof SUPPORTED_ASSETS]?.address || '0x0000000000000000000000000000000000000000';
+
+      // Format amount to ensure it's a valid decimal string (e.g., "5" or "5.0")
+      const formattedAmount = parseFloat(amount).toString();
+
+      // Step 1: Create transfer record in backend (for tracking)
+      notify.info('Creating transfer record...');
+      let transferRecord;
+      if (sourceChain === destChain) {
+        transferRecord = await initiateSameChainTransfer(
+          Number(sourceChain),
+          tokenAddress,
+          formattedAmount,
+          recipientAddress
+        );
+      } else {
+        transferRecord = await initiateCrossChainTransfer(
+          Number(sourceChain),
+          Number(destChain),
+          tokenAddress,
+          formattedAmount,
+          recipientAddress
+        );
+      }
+
+      // Step 2: Check token allowance
+      notify.info('Checking token allowance...');
+      const amountBigInt = ethers.parseEther(formattedAmount);
+      const allowance = await checkAllowance(tokenAddress, wallet.address, CHAINSYNC_CONTRACT_ADDRESS);
+
+      // Step 3: Approve token if needed
+      if (allowance < amountBigInt) {
+        notify.info('Please approve token spending in MetaMask...');
+        await approveToken(tokenAddress, formattedAmount, CHAINSYNC_CONTRACT_ADDRESS);
+        notify.success('Token approval confirmed!');
+      }
+
+      // Step 4: Execute blockchain transaction (user signs via MetaMask)
+      notify.info('Please confirm the transfer in MetaMask...');
+      let txHash: string;
+
+      if (sourceChain === destChain) {
+        txHash = await executeSameChainTransfer(tokenAddress, recipientAddress, formattedAmount);
+      } else {
+        txHash = await executeCrossChainTransfer(tokenAddress, recipientAddress, formattedAmount, Number(destChain));
+      }
+
+      notify.success(`Transfer submitted! Transaction: ${txHash.substring(0, 10)}...`);
+
+      // Step 5: Update backend with transaction hash
+      if (transferRecord?.id) {
+        await apiClient.updateTransferStatus(transferRecord.id, 'CONFIRMED', txHash);
+      }
+
+      notify.success('Transfer completed successfully!');
+      setAmount('');
+      setRecipientAddress('');
+    } catch (error: any) {
+      console.error('Transfer error:', error);
+
+      // Handle user rejection
+      if (error?.code === 4001 || error?.message?.includes('user rejected')) {
+        notify.error('Transaction rejected by user');
+        return;
+      }
+
+      // Show the actual error message
+      const errorMessage = error?.response?.data?.message || error?.message || 'Transfer failed. Please try again.';
+      notify.error(errorMessage);
     }
   };
 
@@ -138,11 +207,11 @@ export default function Transfer() {
                 variant="primary"
                 fullWidth
                 size="lg"
-                isLoading={isProcessing}
+                isLoading={isLoading}
                 onClick={handleTransfer}
                 className="w-full md:w-auto"
               >
-                {isProcessing ? 'Processing...' : 'Initiate Transfer'}
+                {isLoading ? 'Processing...' : 'Initiate Transfer'}
               </Button>
             </Card.Body>
           </Card>

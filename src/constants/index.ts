@@ -94,6 +94,14 @@ export const SUPPORTED_CHAINS: Record<number, Chain> = {
 };
 
 export const SUPPORTED_ASSETS: Record<string, Asset> = {
+  CST: {
+    symbol: 'CST',
+    name: 'ChainSync Token',
+    decimals: 18,
+    address: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Local Hardhat deployment
+    balance: '1000',
+    usdPrice: 1.0,
+  },
   ETH: {
     symbol: 'ETH',
     name: 'Ethereum',
@@ -146,14 +154,14 @@ export const GOVERNANCE_CONFIG = {
   QUORUM_PERCENT: 40,
 };
 
-// export const API_ENDPOINTS = {
-//   BASE_URL: process.env.VITE_API_URL || 'https://api.chainsync.io',
-//   AUTH: '/auth',
-//   TRANSFERS: '/transfers',
-//   VALIDATORS: '/validators',
-//   GOVERNANCE: '/governance',
-//   WALLET: '/wallet',
-// };
+export const API_ENDPOINTS = {
+  BASE_URL: (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api/v1',
+  AUTH: '/auth',
+  TRANSFERS: '/transfers',
+  VALIDATORS: '/validators',
+  GOVERNANCE: '/governance',
+  HEALTH: '/health',
+};
 
 export const ANIMATION_DURATION = {
   FAST: 150,
