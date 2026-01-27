@@ -8,6 +8,7 @@ import { AnimatedHeroNetwork } from "@/components/AnimatedHeroNetwork";
 import { AnimatedCodeBlock, CodeExamples } from "@/components/AnimatedCodeBlock";
 import Card from "@/components/Card";
 import { useWeb3Auth } from "@/hooks/useWeb3Auth";
+import { useWalletDiscovery, type DetectedWallet } from "@/hooks/useWalletDiscovery";
 
 export default function Home() {
     const [scrollY, setScrollY] = useState(0);
@@ -15,6 +16,9 @@ export default function Home() {
     const { connectWallet } = useWalletStore();
     const [showWalletModal, setShowWalletModal] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
+
+    // Initialize wallet discovery hook (EIP-6963)
+    const { wallets, isDiscovering, hasWallets } = useWalletDiscovery();
 
     // Initialize Web3 Auth hook
     const web3Auth = useWeb3Auth({
@@ -31,27 +35,32 @@ export default function Home() {
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const handleConnectWallet = async () => {
+    const handleConnectWallet = async (wallet?: DetectedWallet) => {
         try {
             setConnectionError(null);
 
-            // Use the real Web3Auth hook to connect wallet
-            await web3Auth.connectWallet();
+            // Use the real Web3Auth hook to connect wallet with specific provider
+            // This handles the full flow: eth_requestAccounts -> challenge -> sign -> verify
+            await web3Auth.connectWallet(wallet?.provider);
 
-            // Get the connected address and chain ID
-            const address = web3Auth.address;
-            const chainId = web3Auth.chainId;
+            // After web3Auth completes, we need to sync the wallet store for Dashboard
+            // The web3Auth state is updated, but we need to read it after the async operation
+            // Use a small delay to allow React state to propagate
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-            if (address && chainId) {
-                // Update wallet store with connected wallet info
-                await connectWallet(address, chainId as any);
-
-                // Close modal and navigate to dashboard
-                setShowWalletModal(false);
-                setTimeout(() => {
-                    setLocation('/dashboard');
-                }, 500);
+            // Read the stored auth data from localStorage (more reliable than hook state after async)
+            const storedAuth = localStorage.getItem('chainsync_auth');
+            if (storedAuth) {
+                const authData = JSON.parse(storedAuth);
+                if (authData.address && authData.chainId) {
+                    // Sync wallet store with the authenticated address
+                    await connectWallet(authData.address, authData.chainId);
+                }
             }
+
+            // Close modal and navigate to dashboard
+            setShowWalletModal(false);
+            setLocation('/dashboard');
         } catch (error: any) {
             console.error('Failed to connect wallet:', error);
             setConnectionError(error?.message || 'Failed to connect wallet. Please try again.');
@@ -476,74 +485,61 @@ export default function Home() {
 
                             {/* Wallet Options */}
                             <div className="space-y-2">
-                                {/* MetaMask */}
-                                <button
-                                    onClick={handleConnectWallet}
-                                    disabled={web3Auth.isLoading}
-                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-orange-500 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-                                >
-                                    <span className="text-2xl">🦊</span>
-                                    <span className="flex-1 text-left">
-                                        {web3Auth.isLoading ? (
-                                            <span className="flex items-center gap-2">
-                                                <span className="animate-spin">⟳</span>
-                                                Connecting...
-                                            </span>
-                                        ) : (
-                                            'MetaMask'
-                                        )}
-                                    </span>
-                                    {window.ethereum?.isMetaMask && (
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                            Detected
-                                        </span>
-                                    )}
-                                </button>
-
-                                {/* Trust Wallet */}
-                                <button
-                                    onClick={handleConnectWallet}
-                                    disabled={web3Auth.isLoading}
-                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-500 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-                                >
-                                    <span className="text-2xl">💙</span>
-                                    <span className="flex-1 text-left">Trust Wallet</span>
-                                    {window.ethereum?.isTrust && (
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                            Detected
-                                        </span>
-                                    )}
-                                </button>
-
-                                {/* Coinbase Wallet */}
-                                <button
-                                    onClick={handleConnectWallet}
-                                    disabled={web3Auth.isLoading}
-                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-600 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-                                >
-                                    <span className="text-2xl">🔵</span>
-                                    <span className="flex-1 text-left">Coinbase Wallet</span>
-                                    {window.ethereum?.isCoinbaseWallet && (
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                            Detected
-                                        </span>
-                                    )}
-                                </button>
-
-                                {/* Phantom */}
-                                <button
-                                    onClick={handleConnectWallet}
-                                    disabled={web3Auth.isLoading}
-                                    className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-purple-500 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-                                >
-                                    <span className="text-2xl">👻</span>
-                                    <span className="flex-1 text-left">Phantom</span>
-                                    {window.ethereum?.isPhantom && (
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                                            Detected
-                                        </span>
-                                    )}
-                                </button>
+                                {isDiscovering ? (
+                                    <div className="flex items-center justify-center p-4">
+                                        <span className="animate-spin mr-2">⟳</span>
+                                        <span className="text-gray-600">Detecting wallets...</span>
+                                    </div>
+                                ) : hasWallets ? (
+                                    <>
+                                        {wallets.map((wallet) => (
+                                            <button
+                                                type="button"
+                                                key={wallet.id}
+                                                onClick={() => handleConnectWallet(wallet)}
+                                                disabled={web3Auth.isLoading}
+                                                className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-500 transition-colors font-medium text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                                            >
+                                                <img
+                                                    src={wallet.icon}
+                                                    alt={wallet.name}
+                                                    className="w-8 h-8 rounded-lg"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                                <span className="flex-1 text-left">
+                                                    {web3Auth.isLoading ? (
+                                                        <span className="flex items-center gap-2">
+                                                            <span className="animate-spin">⟳</span>
+                                                            Connecting...
+                                                        </span>
+                                                    ) : (
+                                                        wallet.name
+                                                    )}
+                                                </span>
+                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                                    Detected
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <div className="text-center p-4 text-gray-500">
+                                        <p>No wallets detected.</p>
+                                        <p className="text-sm mt-2">
+                                            Please install a Web3 wallet like{' '}
+                                            <a
+                                                href="https://metamask.io/download"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:underline"
+                                            >
+                                                MetaMask
+                                            </a>
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* WalletConnect - Coming Soon */}
                                 <button

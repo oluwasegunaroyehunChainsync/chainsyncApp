@@ -86,10 +86,88 @@ export const SUPPORTED_CHAINS: Record<number, Chain> = {
     id: 11155111,
     name: 'Sepolia',
     symbol: 'SEP',
-    rpc: 'https://sepolia.infura.io/v3/YOUR_KEY',
+    rpc: 'https://sepolia.infura.io/v3/431555c0703a4385b753bf1b912fd846',
     explorer: 'https://sepolia.etherscan.io',
     nativeToken: 'ETH',
     decimals: 18,
+  },
+  421614: {
+    id: 421614,
+    name: 'Arbitrum Sepolia',
+    symbol: 'ARB-SEP',
+    rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
+    explorer: 'https://sepolia.arbiscan.io',
+    nativeToken: 'ETH',
+    decimals: 18,
+  },
+  31337: {
+    id: 31337,
+    name: 'Hardhat',
+    symbol: 'HH',
+    rpc: 'http://127.0.0.1:8545',
+    explorer: '',
+    nativeToken: 'ETH',
+    decimals: 18,
+  },
+};
+
+// Contract addresses per network
+// IMPORTANT: Update these addresses after mainnet deployment!
+export const CONTRACT_ADDRESSES: Record<number, {
+  cstToken: string;
+  chainSync: string;
+  validatorRegistry: string;
+}> = {
+  // ============================================
+  // MAINNET ADDRESSES (Update after deployment)
+  // ============================================
+
+  // Ethereum Mainnet
+  1: {
+    cstToken: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    chainSync: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    validatorRegistry: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+  },
+  // Polygon Mainnet
+  137: {
+    cstToken: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    chainSync: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    validatorRegistry: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+  },
+  // Arbitrum One (Mainnet)
+  42161: {
+    cstToken: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    chainSync: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    validatorRegistry: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+  },
+  // Base Mainnet
+  8453: {
+    cstToken: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    chainSync: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    validatorRegistry: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+  },
+
+  // ============================================
+  // TESTNET ADDRESSES (Currently Deployed)
+  // ============================================
+
+  // Hardhat Local
+  31337: {
+    cstToken: '0x610178dA211FEF7D417bC0e6FeD39F05609AD788',
+    chainSync: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e',
+    validatorRegistry: '0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0',
+  },
+  // Sepolia Testnet (LIVE)
+  11155111: {
+    cstToken: '0xd62684427bc5a8b7eaDa01E3484f1Fa8d4bcDacD',
+    chainSync: '0x67EB5641679A476CB408E201ed3CB087a2422352',
+    validatorRegistry: '0xF2332CAeD0567DCF513359FD2788b3a63aC36175',
+  },
+  // Arbitrum Sepolia Testnet (LIVE)
+  421614: {
+    cstToken: '0xd62684427bc5a8b7eaDa01E3484f1Fa8d4bcDacD',
+    chainSync: '0x67EB5641679A476CB408E201ed3CB087a2422352',
+    validatorRegistry: '0xF2332CAeD0567DCF513359FD2788b3a63aC36175',
   },
 };
 
@@ -98,7 +176,7 @@ export const SUPPORTED_ASSETS: Record<string, Asset> = {
     symbol: 'CST',
     name: 'ChainSync Token',
     decimals: 18,
-    address: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Local Hardhat deployment
+    address: '0xd62684427bc5a8b7eaDa01E3484f1Fa8d4bcDacD', // Testnet deployment (same on Sepolia & Arb Sepolia)
     balance: '1000',
     usdPrice: 1.0,
   },
@@ -174,3 +252,15 @@ export const BREAKPOINTS = {
   TABLET: 1024,
   DESKTOP: 1280,
 };
+
+/**
+ * Get the CST token address for a specific chain
+ */
+export function getCSTTokenAddress(chainId: number): string {
+  const addresses = CONTRACT_ADDRESSES[chainId];
+  if (addresses) {
+    return addresses.cstToken;
+  }
+  // Fallback to testnet address
+  return '0xd62684427bc5a8b7eaDa01E3484f1Fa8d4bcDacD';
+}

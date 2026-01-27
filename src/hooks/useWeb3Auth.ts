@@ -2,10 +2,13 @@
  * useWeb3Auth Hook
  * Production-grade Web3 authentication hook for React
  * Handles wallet connection, signature verification, and token management
+ * Supports EIP-6963 multi-wallet discovery
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { BrowserProvider, ethers } from "ethers";
+import { BrowserProvider } from "ethers";
+import type { EIP1193Provider } from "./useWalletDiscovery";
+import { setSelectedWalletProvider } from "@/utils/web3";
 
 /**
  * Authentication state and configuration
@@ -80,6 +83,7 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
   });
 
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
+  const [currentEthProvider, setCurrentEthProvider] = useState<EIP1193Provider | null>(null);
 
   /**
    * Load stored authentication state from localStorage
@@ -314,25 +318,46 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
 
   /**
    * Main connect wallet function
+   * @param walletProvider - Optional specific wallet provider (from EIP-6963 discovery)
    */
-  const connectWallet = useCallback(async (): Promise<void> => {
+  const connectWallet = useCallback(async (walletProvider?: EIP1193Provider): Promise<void> => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Check MetaMask installation
-      if (!isMetaMaskInstalled()) {
+      // Use provided wallet provider or fall back to window.ethereum
+      const ethProvider = walletProvider || (window.ethereum as EIP1193Provider);
+
+      if (!ethProvider) {
         throw new Error(
-          "MetaMask is not installed. Please install it to continue."
+          "No wallet detected. Please install a Web3 wallet to continue."
         );
       }
 
-      // Get connected address and chain ID
-      const address = await getConnectedAddress();
+      // Store the current provider for future use
+      setCurrentEthProvider(ethProvider);
+
+      // Also set it in web3.ts so transaction signing uses the correct wallet
+      setSelectedWalletProvider(ethProvider);
+
+      // Create ethers provider from the selected wallet
+      const browserProvider = new BrowserProvider(ethProvider);
+      setProvider(browserProvider);
+
+      // Request wallet connection (this triggers the wallet popup)
+      console.log('Requesting wallet connection...');
+      await ethProvider.request({ method: 'eth_requestAccounts' });
+      console.log('Wallet connection approved');
+
+      // Get connected address
+      const signer = await browserProvider.getSigner();
+      const address = await signer.getAddress();
       if (!address) {
         throw new Error("Failed to get wallet address");
       }
 
-      const chainId = await getChainId();
+      // Get chain ID
+      const network = await browserProvider.getNetwork();
+      const chainId = Number(network.chainId);
       if (!chainId) {
         throw new Error("Failed to get chain ID");
       }
@@ -344,7 +369,7 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
       }
 
       // Sign message
-      const signature = await signMessage(challenge.message);
+      const signature = await signer.signMessage(challenge.message);
       if (!signature) {
         throw new Error("Failed to sign message");
       }
@@ -362,11 +387,7 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
       throw error;
     }
   }, [
-    isMetaMaskInstalled,
-    getConnectedAddress,
-    getChainId,
     requestChallenge,
-    signMessage,
     verifySignature,
   ]);
 
@@ -434,6 +455,10 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
       expiresAt: null,
     });
     localStorage.removeItem(storageKey);
+
+    // Clear the selected wallet provider
+    setSelectedWalletProvider(null);
+    setCurrentEthProvider(null);
   }, [storageKey]);
 
   /**
@@ -468,6 +493,7 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
   return {
     // State
     ...state,
+    currentEthProvider,
 
     // Methods
     connectWallet,

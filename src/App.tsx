@@ -123,8 +123,10 @@ function Router() {
  * Root component with error boundary and global providers
  */
 function App() {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+
     return (
-        <web3AuthProvider>
+        <Web3AuthProvider config={{ apiUrl }}>
         <ErrorBoundary>
             <div className="min-h-screen bg-white">
                 {/* Global Notification Center */}
@@ -134,7 +136,7 @@ function App() {
                 <Router />
             </div>
         </ErrorBoundary>
-        </web3AuthProvider>
+        </Web3AuthProvider>
     );
 }
 

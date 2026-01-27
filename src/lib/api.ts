@@ -116,13 +116,15 @@ class ApiClient {
     tokenAddress: string;
     amount: string;
     recipient: string;
+    contractAddress: string;
   }) {
     // Map frontend params to backend expected format
     const payload = {
       tokenAddress: data.tokenAddress,
       recipientAddress: data.recipient,
       amount: data.amount,
-      contractAddress: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', // ChainSync contract from backend .env
+      sourceChainId: data.sourceChainId,
+      contractAddress: data.contractAddress,
     };
 
     return this.request(`${API_ENDPOINTS.TRANSFERS}/same-chain`, {
@@ -137,6 +139,7 @@ class ApiClient {
     tokenAddress: string;
     amount: string;
     recipient: string;
+    contractAddress: string;
   }) {
     // Map frontend params to backend expected format
     const payload = {
@@ -144,7 +147,8 @@ class ApiClient {
       recipientAddress: data.recipient,
       destinationChainId: data.destinationChainId,
       amount: data.amount,
-      contractAddress: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', // ChainSync contract from backend .env
+      sourceChainId: data.sourceChainId,
+      contractAddress: data.contractAddress,
     };
 
     return this.request(`${API_ENDPOINTS.TRANSFERS}/cross-chain`, {

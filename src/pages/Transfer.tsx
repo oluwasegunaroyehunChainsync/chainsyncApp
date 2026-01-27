@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWalletStore, useTransferStore, notify } from '@/stores';
-import { SUPPORTED_CHAINS, SUPPORTED_ASSETS } from '@/constants';
+import { SUPPORTED_CHAINS, SUPPORTED_ASSETS, CONTRACT_ADDRESSES, getCSTTokenAddress } from '@/constants';
 import { ChainId } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -10,20 +10,39 @@ import {
   checkAllowance,
   executeSameChainTransfer,
   executeCrossChainTransfer,
+  setCurrentChainId,
+  getContractAddresses,
 } from '@/utils/web3';
 import { ethers } from 'ethers';
 import { apiClient } from '@/lib/api';
 
+// Filter chains that have deployed contracts
+const TESTNET_CHAINS = Object.entries(SUPPORTED_CHAINS).filter(
+  ([id]) => CONTRACT_ADDRESSES[Number(id)]
+);
+
 export default function Transfer() {
   const { wallet } = useWalletStore();
   const { initiateCrossChainTransfer, initiateSameChainTransfer, isLoading } = useTransferStore();
-  const [sourceChain, setSourceChain] = useState<ChainId>(1 as ChainId);
-  const [destChain, setDestChain] = useState<ChainId>(137 as ChainId);
+  const [sourceChain, setSourceChain] = useState<ChainId>(11155111 as ChainId); // Default to Sepolia testnet
+  const [destChain, setDestChain] = useState<ChainId>(421614 as ChainId); // Default to Arbitrum Sepolia
   const [asset, setAsset] = useState('CST'); // Default to CST token for testing
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false); // Local guard to prevent double execution
+
+  // Update web3 utility with current chain when source chain changes
+  useEffect(() => {
+    setCurrentChainId(Number(sourceChain));
+  }, [sourceChain]);
 
   const handleTransfer = async () => {
+    // Prevent double execution
+    if (isTransferring) {
+      console.log('Transfer already in progress, ignoring duplicate call');
+      return;
+    }
+
     if (!amount || parseFloat(amount) <= 0) {
       notify.error('Please enter a valid amount');
       return;
@@ -39,11 +58,20 @@ export default function Transfer() {
       return;
     }
 
-    const CHAINSYNC_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+    // Set local guard immediately
+    setIsTransferring(true);
+
+    // Get contract address for the source chain
+    const contractAddresses = getContractAddresses(Number(sourceChain));
 
     try {
-      // Get token address from SUPPORTED_ASSETS
-      const tokenAddress = SUPPORTED_ASSETS[asset as keyof typeof SUPPORTED_ASSETS]?.address || '0x0000000000000000000000000000000000000000';
+      // Get token address - use chain-specific address for CST
+      let tokenAddress: string;
+      if (asset === 'CST') {
+        tokenAddress = getCSTTokenAddress(Number(sourceChain));
+      } else {
+        tokenAddress = SUPPORTED_ASSETS[asset as keyof typeof SUPPORTED_ASSETS]?.address || '0x0000000000000000000000000000000000000000';
+      }
 
       // Format amount to ensure it's a valid decimal string (e.g., "5" or "5.0")
       const formattedAmount = parseFloat(amount).toString();
@@ -56,7 +84,8 @@ export default function Transfer() {
           Number(sourceChain),
           tokenAddress,
           formattedAmount,
-          recipientAddress
+          recipientAddress,
+          contractAddresses.chainSync
         );
       } else {
         transferRecord = await initiateCrossChainTransfer(
@@ -64,19 +93,20 @@ export default function Transfer() {
           Number(destChain),
           tokenAddress,
           formattedAmount,
-          recipientAddress
+          recipientAddress,
+          contractAddresses.chainSync
         );
       }
 
       // Step 2: Check token allowance
       notify.info('Checking token allowance...');
       const amountBigInt = ethers.parseEther(formattedAmount);
-      const allowance = await checkAllowance(tokenAddress, wallet.address, CHAINSYNC_CONTRACT_ADDRESS);
+      const allowance = await checkAllowance(tokenAddress, wallet.address, contractAddresses.chainSync);
 
       // Step 3: Approve token if needed
       if (allowance < amountBigInt) {
         notify.info('Please approve token spending in MetaMask...');
-        await approveToken(tokenAddress, formattedAmount, CHAINSYNC_CONTRACT_ADDRESS);
+        await approveToken(tokenAddress, formattedAmount, contractAddresses.chainSync);
         notify.success('Token approval confirmed!');
       }
 
@@ -112,6 +142,9 @@ export default function Transfer() {
       // Show the actual error message
       const errorMessage = error?.response?.data?.message || error?.message || 'Transfer failed. Please try again.';
       notify.error(errorMessage);
+    } finally {
+      // Always reset the guard
+      setIsTransferring(false);
     }
   };
 
@@ -143,7 +176,7 @@ export default function Transfer() {
                   onChange={(e) => setSourceChain(Number(e.target.value) as ChainId)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {Object.entries(SUPPORTED_CHAINS).map(([id, chain]) => (
+                  {TESTNET_CHAINS.map(([id, chain]) => (
                     <option key={id} value={id}>
                       {chain.name}
                     </option>
@@ -195,7 +228,7 @@ export default function Transfer() {
                   onChange={(e) => setDestChain(Number(e.target.value) as ChainId)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {Object.entries(SUPPORTED_CHAINS).map(([id, chain]) => (
+                  {TESTNET_CHAINS.map(([id, chain]) => (
                     <option key={id} value={id}>
                       {chain.name}
                     </option>
@@ -207,11 +240,12 @@ export default function Transfer() {
                 variant="primary"
                 fullWidth
                 size="lg"
-                isLoading={isLoading}
+                isLoading={isLoading || isTransferring}
+                disabled={isLoading || isTransferring}
                 onClick={handleTransfer}
                 className="w-full md:w-auto"
               >
-                {isLoading ? 'Processing...' : 'Initiate Transfer'}
+                {(isLoading || isTransferring) ? 'Processing...' : 'Initiate Transfer'}
               </Button>
             </Card.Body>
           </Card>

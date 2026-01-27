@@ -8,18 +8,9 @@ import { useWeb3Auth, Web3AuthState, Web3AuthConfig } from "../hooks/useWeb3Auth
 
 /**
  * Context value type
+ * Using ReturnType to get exact type from the hook
  */
-interface Web3AuthContextType extends Web3AuthState {
-    connectWallet: () => Promise<void>;
-    disconnectWallet: () => void;
-    refreshToken: () => Promise<void>;
-    getAuthHeader: () => Record<string, string>;
-    isTokenExpired: () => boolean;
-    getTimeUntilExpiry: () => number;
-    isMetaMaskInstalled: () => boolean;
-    getConnectedAddress: () => Promise<string | null>;
-    getChainId: () => Promise<number | null>;
-}
+type Web3AuthContextType = ReturnType<typeof useWeb3Auth>;
 
 /**
  * Create Web3Auth context
@@ -60,12 +51,8 @@ export const Web3AuthProvider: React.FC<Web3AuthProviderProps> = ({
                                                                   }) => {
     const auth = useWeb3Auth(config);
 
-    const value: Web3AuthContextType = {
-        ...auth,
-    };
-
     return (
-        <Web3AuthContext.Provider value={value}>
+        <Web3AuthContext.Provider value={auth}>
             {children}
         </Web3AuthContext.Provider>
     );

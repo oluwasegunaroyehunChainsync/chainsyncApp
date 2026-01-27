@@ -15,10 +15,10 @@ interface TransferState {
   getQuote: (sourceChainId: number, destinationChainId: number, contractAddress: string, amount: string) => Promise<void>;
 
   // Initiate cross-chain transfer
-  initiateCrossChainTransfer: (sourceChainId: number, destinationChainId: number, tokenAddress: string, amount: string, recipient: string) => Promise<any>;
+  initiateCrossChainTransfer: (sourceChainId: number, destinationChainId: number, tokenAddress: string, amount: string, recipient: string, contractAddress: string) => Promise<any>;
 
   // Initiate same-chain transfer
-  initiateSameChainTransfer: (sourceChainId: number, tokenAddress: string, amount: string, recipient: string) => Promise<any>;
+  initiateSameChainTransfer: (sourceChainId: number, tokenAddress: string, amount: string, recipient: string, contractAddress: string) => Promise<any>;
 
   // Fetch transfer history from backend
   fetchTransferHistory: () => Promise<void>;
@@ -61,7 +61,7 @@ export const useTransferStore = create<TransferState>()(
         }
       },
 
-      initiateCrossChainTransfer: async (sourceChainId, destinationChainId, tokenAddress, amount, recipient) => {
+      initiateCrossChainTransfer: async (sourceChainId, destinationChainId, tokenAddress, amount, recipient, contractAddress) => {
         set({ isLoading: true, error: null });
         try {
           const result = await apiClient.initiateCrossChainTransfer({
@@ -70,6 +70,7 @@ export const useTransferStore = create<TransferState>()(
             tokenAddress,
             amount,
             recipient,
+            contractAddress,
           }) as any;
 
           // Create local transfer object from backend response
@@ -103,7 +104,7 @@ export const useTransferStore = create<TransferState>()(
         }
       },
 
-      initiateSameChainTransfer: async (sourceChainId, tokenAddress, amount, recipient) => {
+      initiateSameChainTransfer: async (sourceChainId, tokenAddress, amount, recipient, contractAddress) => {
         set({ isLoading: true, error: null });
         try {
           const result = await apiClient.initiateSameChainTransfer({
@@ -111,6 +112,7 @@ export const useTransferStore = create<TransferState>()(
             tokenAddress,
             amount,
             recipient,
+            contractAddress,
           }) as any;
 
           // Create local transfer object from backend response

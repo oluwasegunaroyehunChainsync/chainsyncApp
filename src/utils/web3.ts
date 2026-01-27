@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS } from '@/constants';
 
 // Smart Contract ABIs
 const CHAINSYNC_ABI = [
@@ -23,33 +24,97 @@ const VALIDATOR_REGISTRY_ABI = [
   'function removeStake(uint256 amount) external',
 ];
 
-// Contract addresses (from backend .env)
-const CHAINSYNC_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
-const VALIDATOR_REGISTRY_ADDRESS = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
+// Default to Hardhat for backwards compatibility
+const DEFAULT_CHAIN_ID = 31337;
+
+// Track current connected chain
+let currentChainId: number = DEFAULT_CHAIN_ID;
 
 /**
- * Get the active wallet provider from the wallet store or window
- * This works with MetaMask, Trust Wallet, WalletConnect, Coinbase Wallet, Phantom, etc.
- * Any EIP-1193 compatible wallet will work
+ * Get contract addresses for a specific chain
+ */
+export function getContractAddresses(chainId: number = currentChainId) {
+  const addresses = CONTRACT_ADDRESSES[chainId];
+  if (!addresses) {
+    console.warn(`No contract addresses for chain ${chainId}, falling back to Hardhat`);
+    return CONTRACT_ADDRESSES[DEFAULT_CHAIN_ID];
+  }
+  return addresses;
+}
+
+/**
+ * Set the current chain ID (called when user switches networks)
+ */
+export function setCurrentChainId(chainId: number): void {
+  currentChainId = chainId;
+  console.log('Current chain ID set to:', chainId);
+}
+
+/**
+ * Get the current chain ID
+ */
+export function getCurrentChainId(): number {
+  return currentChainId;
+}
+
+/**
+ * Get RPC URL for a chain
+ */
+export function getRpcUrl(chainId: number = currentChainId): string {
+  const chain = SUPPORTED_CHAINS[chainId];
+  return chain?.rpc || 'http://127.0.0.1:8545';
+}
+
+/**
+ * EIP-1193 Provider Interface (for storing selected wallet)
+ */
+interface EIP1193Provider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on?: (event: string, handler: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
+}
+
+/**
+ * Stored selected wallet provider
+ * This ensures we use the same wallet that the user connected with
+ */
+let selectedWalletProvider: EIP1193Provider | null = null;
+
+/**
+ * Set the selected wallet provider
+ * Call this when the user connects their wallet
+ */
+export function setSelectedWalletProvider(provider: EIP1193Provider | null): void {
+  selectedWalletProvider = provider;
+  console.log('Selected wallet provider set:', provider ? 'yes' : 'no');
+}
+
+/**
+ * Get the selected wallet provider
+ */
+export function getSelectedWalletProvider(): EIP1193Provider | null {
+  return selectedWalletProvider;
+}
+
+/**
+ * Get the active wallet provider
+ * Uses the selected wallet provider if set, otherwise falls back to window.ethereum
+ * This ensures signing requests go to the correct wallet
  */
 export function getProvider(): ethers.BrowserProvider | null {
   if (typeof window === 'undefined') return null;
 
-  // Check for injected provider (MetaMask, Trust Wallet, Phantom, etc.)
-  // Priority order: window.ethereum is the standard
-  let provider = window.ethereum;
-
-  // If multiple wallets are installed, they might inject into different properties
-  // But modern wallets use EIP-6963 or fallback to window.ethereum
+  // Use selected wallet provider if available (set during wallet connection)
+  const provider = selectedWalletProvider || window.ethereum;
 
   if (!provider) return null;
 
-  return new ethers.BrowserProvider(provider);
+  return new ethers.BrowserProvider(provider as any);
 }
 
 /**
  * Get the user's signer (for signing transactions)
- * Works with any connected wallet
+ * Uses the selected wallet provider to ensure correct wallet is used
  */
 export async function getSigner(): Promise<ethers.Signer | null> {
   const provider = getProvider();
@@ -58,36 +123,60 @@ export async function getSigner(): Promise<ethers.Signer | null> {
 }
 
 /**
+ * Get a read-only provider for the current or specified chain
+ * Uses direct RPC connection instead of wallet provider for reliability
+ */
+export function getReadOnlyProvider(chainId?: number): ethers.JsonRpcProvider {
+  const rpcUrl = getRpcUrl(chainId || currentChainId);
+  return new ethers.JsonRpcProvider(rpcUrl);
+}
+
+/**
  * Check if user has approved token spending
+ * Uses direct RPC connection for reliable read operations
  */
 export async function checkAllowance(
   tokenAddress: string,
   ownerAddress: string,
-  spenderAddress: string = CHAINSYNC_CONTRACT_ADDRESS
+  spenderAddress?: string
 ): Promise<bigint> {
-  const provider = getProvider();
-  if (!provider) throw new Error('No Ethereum provider found');
+  const addresses = getContractAddresses();
+  const spender = spenderAddress || addresses.chainSync;
+
+  // Use direct RPC provider for read-only operations
+  // This avoids issues with MetaMask network switching
+  const provider = getReadOnlyProvider();
 
   const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-  const allowance = await tokenContract.allowance(ownerAddress, spenderAddress);
+  const allowance = await tokenContract.allowance(ownerAddress, spender);
   return allowance;
 }
 
 /**
  * Approve token spending
+ * Approves max uint256 to avoid repeated approvals for each transfer
+ * @param tokenAddress - The ERC20 token contract address
+ * @param _amount - Unused, kept for backwards compatibility. Always approves max uint256.
+ * @param spenderAddress - The address allowed to spend tokens (defaults to ChainSync contract)
  */
 export async function approveToken(
   tokenAddress: string,
-  amount: string,
-  spenderAddress: string = CHAINSYNC_CONTRACT_ADDRESS
+  _amount: string,
+  spenderAddress?: string
 ): Promise<string> {
+  const addresses = getContractAddresses();
+  const spender = spenderAddress || addresses.chainSync;
+
   const signer = await getSigner();
   if (!signer) throw new Error('No signer available');
 
   const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-  const amountBigInt = ethers.parseEther(amount);
 
-  const tx = await tokenContract.approve(spenderAddress, amountBigInt);
+  // Approve max uint256 to avoid repeated approval popups
+  // This is a common pattern for DeFi applications
+  const maxApproval = ethers.MaxUint256;
+
+  const tx = await tokenContract.approve(spender, maxApproval);
   const receipt = await tx.wait();
 
   return receipt.hash;
@@ -101,11 +190,13 @@ export async function executeSameChainTransfer(
   recipientAddress: string,
   amount: string
 ): Promise<string> {
+  const addresses = getContractAddresses();
+
   const signer = await getSigner();
   if (!signer) throw new Error('No signer available');
 
   const chainSyncContract = new ethers.Contract(
-    CHAINSYNC_CONTRACT_ADDRESS,
+    addresses.chainSync,
     CHAINSYNC_ABI,
     signer
   );
@@ -131,11 +222,13 @@ export async function executeCrossChainTransfer(
   amount: string,
   destinationChainId: number
 ): Promise<string> {
+  const addresses = getContractAddresses();
+
   const signer = await getSigner();
   if (!signer) throw new Error('No signer available');
 
   const chainSyncContract = new ethers.Contract(
-    CHAINSYNC_CONTRACT_ADDRESS,
+    addresses.chainSync,
     CHAINSYNC_ABI,
     signer
   );
@@ -155,13 +248,14 @@ export async function executeCrossChainTransfer(
 
 /**
  * Get token balance
+ * Uses direct RPC connection for reliable read operations
  */
 export async function getTokenBalance(
   tokenAddress: string,
   userAddress: string
 ): Promise<string> {
-  const provider = getProvider();
-  if (!provider) throw new Error('No Ethereum provider found');
+  // Use direct RPC provider for read-only operations
+  const provider = getReadOnlyProvider();
 
   const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
   const balance = await tokenContract.balanceOf(userAddress);
@@ -171,13 +265,16 @@ export async function getTokenBalance(
 
 /**
  * Calculate transfer fee
+ * Uses direct RPC connection for reliable read operations
  */
 export async function calculateTransferFee(amount: string): Promise<string> {
-  const provider = getProvider();
-  if (!provider) throw new Error('No Ethereum provider found');
+  const addresses = getContractAddresses();
+
+  // Use direct RPC provider for read-only operations
+  const provider = getReadOnlyProvider();
 
   const chainSyncContract = new ethers.Contract(
-    CHAINSYNC_CONTRACT_ADDRESS,
+    addresses.chainSync,
     CHAINSYNC_ABI,
     provider
   );
@@ -230,13 +327,16 @@ export async function switchChain(chainId: number): Promise<void> {
 
 /**
  * Get user's staked amount in ValidatorRegistry
+ * Uses direct RPC connection for reliable read operations
  */
 export async function getUserStakedAmount(userAddress: string): Promise<string> {
-  const provider = getProvider();
-  if (!provider) throw new Error('No provider available');
+  const addresses = getContractAddresses();
+
+  // Use direct RPC provider for read-only operations
+  const provider = getReadOnlyProvider();
 
   const validatorRegistry = new ethers.Contract(
-    VALIDATOR_REGISTRY_ADDRESS,
+    addresses.validatorRegistry,
     VALIDATOR_REGISTRY_ABI,
     provider
   );
@@ -252,17 +352,20 @@ export async function getUserStakedAmount(userAddress: string): Promise<string> 
 
 /**
  * Get user's validator info (including rewards estimation)
+ * Uses direct RPC connection for reliable read operations
  */
 export async function getUserValidatorInfo(userAddress: string): Promise<{
   stake: string;
   isActive: boolean;
   rewards: string;
 }> {
-  const provider = getProvider();
-  if (!provider) throw new Error('No provider available');
+  const addresses = getContractAddresses();
+
+  // Use direct RPC provider for read-only operations
+  const provider = getReadOnlyProvider();
 
   const validatorRegistry = new ethers.Contract(
-    VALIDATOR_REGISTRY_ADDRESS,
+    addresses.validatorRegistry,
     VALIDATOR_REGISTRY_ABI,
     provider
   );

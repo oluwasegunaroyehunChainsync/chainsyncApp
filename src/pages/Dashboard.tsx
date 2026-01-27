@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useWalletStore, useTransferStore, useGovernanceStore } from '@/stores';
 import { formatAddress } from '@/utils';
-import { getProvider, getUserValidatorInfo } from '@/utils/web3';
+import { getReadOnlyProvider, getUserValidatorInfo } from '@/utils/web3';
 import { ethers } from 'ethers';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+
+// ETH price in USD (for demo purposes - in production, fetch from price API)
+const ETH_PRICE_USD = 3200;
+
+// Format number as USD currency
+const formatUSD = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
 
 interface StatCard {
   label: string;
@@ -25,18 +38,19 @@ export default function Dashboard() {
   const [isLoadingStaking, setIsLoadingStaking] = useState(false);
 
   // Fetch real wallet balance from blockchain
+  // Uses direct RPC provider for reliable read-only operations (doesn't depend on wallet connection state)
   useEffect(() => {
     const fetchRealBalance = async () => {
       if (!wallet?.address) return;
 
       setIsLoadingBalance(true);
       try {
-        const provider = getProvider();
-        if (provider) {
-          const balance = await provider.getBalance(wallet.address);
-          const balanceInEth = ethers.formatEther(balance);
-          setRealBalance(balanceInEth);
-        }
+        // Use direct RPC provider instead of BrowserProvider for reliability
+        // This ensures balance fetching works even if wallet provider state is lost
+        const provider = getReadOnlyProvider();
+        const balance = await provider.getBalance(wallet.address);
+        const balanceInEth = ethers.formatEther(balance);
+        setRealBalance(balanceInEth);
       } catch (error) {
         console.error('Failed to fetch balance:', error);
         setRealBalance('0.00');
@@ -80,24 +94,28 @@ export default function Dashboard() {
         t.status === 'pending' || t.status === 'processing'
       ).length;
 
+      const balanceInUSD = parseFloat(realBalance) * ETH_PRICE_USD;
+      const stakeInUSD = parseFloat(realStakingData.stake) * ETH_PRICE_USD;
+      const rewardsInUSD = parseFloat(realStakingData.rewards) * ETH_PRICE_USD;
+
       setStats([
         {
           label: 'Wallet Balance',
-          value: isLoadingBalance ? 'Loading...' : `${parseFloat(realBalance).toFixed(4)} ETH`,
+          value: isLoadingBalance ? 'Loading...' : formatUSD(balanceInUSD),
           change: '',
           icon: '💰',
           color: 'from-blue-500 to-blue-600',
         },
         {
           label: 'Total Staked',
-          value: isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`,
+          value: isLoadingStaking ? 'Loading...' : formatUSD(stakeInUSD),
           change: '',
           icon: '📈',
           color: 'from-green-500 to-green-600',
         },
         {
           label: 'Rewards Earned',
-          value: isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`,
+          value: isLoadingStaking ? 'Loading...' : formatUSD(rewardsInUSD),
           change: '',
           icon: '🎁',
           color: 'from-purple-500 to-purple-600',
@@ -259,13 +277,19 @@ export default function Dashboard() {
               <div>
                 <p className="text-gray-600 text-sm">Total Staked</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`}
+                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.stake) * ETH_PRICE_USD)}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {isLoadingStaking ? '' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`}
                 </p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm">Unclaimed Rewards</p>
                 <p className="text-2xl font-bold text-green-600 mt-1">
-                  {isLoadingStaking ? 'Loading...' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`}
+                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.rewards) * ETH_PRICE_USD)}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {isLoadingStaking ? '' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`}
                 </p>
               </div>
               <Button variant="primary" fullWidth>
@@ -355,7 +379,10 @@ export default function Dashboard() {
           <div>
             <p className="text-gray-600 text-sm">Balance</p>
             <p className="text-sm font-semibold text-gray-900 mt-1">
-              {isLoadingBalance ? 'Loading...' : `${parseFloat(realBalance).toFixed(4)} ETH`}
+              {isLoadingBalance ? 'Loading...' : formatUSD(parseFloat(realBalance) * ETH_PRICE_USD)}
+            </p>
+            <p className="text-xs text-gray-500">
+              {isLoadingBalance ? '' : `${parseFloat(realBalance).toFixed(4)} ETH`}
             </p>
           </div>
         </Card.Body>

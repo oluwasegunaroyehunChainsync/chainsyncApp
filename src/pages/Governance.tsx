@@ -12,14 +12,16 @@ export default function Governance() {
   const [isVoting, setIsVoting] = useState(false);
 
   const handleVote = async () => {
-    if (!selectedProposal || !voteAmount) {
-      notify.error('Please select a proposal and enter voting power');
+    if (!selectedProposal) {
+      notify.error('Please select a proposal');
       return;
     }
 
     setIsVoting(true);
     try {
-      await vote(selectedProposal, selectedChoice, voteAmount);
+      // Convert choice to boolean: 'for' = true, 'against' = false, 'abstain' = false
+      const support = selectedChoice === 'for';
+      await vote(selectedProposal, support);
       notify.success(`Vote recorded: ${selectedChoice.toUpperCase()}`);
       setVoteAmount('');
       setSelectedProposal(null);
