@@ -1,4 +1,4 @@
-export type ChainId = 1 | 137 | 56 | 250 | 42161 | 43114 | 1088 | 8453 | 7000 | 11155111 | 31337;
+export type ChainId = 1 | 137 | 56 | 250 | 42161 | 43114 | 1088 | 8453 | 7000 | 11155111 | 421614 | 31337;
 
 export type TransferStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type ProposalStatus = 'active' | 'passed' | 'failed' | 'executed';
