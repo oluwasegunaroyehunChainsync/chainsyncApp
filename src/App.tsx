@@ -123,7 +123,7 @@ function Router() {
  * Root component with error boundary and global providers
  */
 function App() {
-    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://98.86.125.252:3001';
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'https://api.chainsync.org';
 
     return (
         <Web3AuthProvider config={{ apiUrl }}>

@@ -233,7 +233,7 @@ export const GOVERNANCE_CONFIG = {
 };
 
 export const API_ENDPOINTS = {
-  BASE_URL: (import.meta as any).env?.VITE_API_URL || 'http://98.86.125.252:3001/api/v1',
+  BASE_URL: (import.meta as any).env?.VITE_API_URL || 'https://api.chainsync.org/api/v1',
   AUTH: '/auth',
   TRANSFERS: '/transfers',
   VALIDATORS: '/validators',
