@@ -122,11 +122,11 @@ export const CONTRACT_ADDRESSES: Record<number, {
   // MAINNET ADDRESSES (Update after deployment)
   // ============================================
 
-  // Ethereum Mainnet
+  // Ethereum Mainnet (DEPLOYED 2026-01-27)
   1: {
-    cstToken: '0x0000000000000000000000000000000000000000', // TODO: Deploy
-    chainSync: '0x0000000000000000000000000000000000000000', // TODO: Deploy
-    validatorRegistry: '0x0000000000000000000000000000000000000000', // TODO: Deploy
+    cstToken: '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06',
+    chainSync: '0x692Eb018Ac9E62999ae984c05a877A01B9959570',
+    validatorRegistry: '0x592C950515DAC7502225F4a461774abE7df0dBFD',
   },
   // Polygon Mainnet
   137: {
@@ -176,7 +176,7 @@ export const SUPPORTED_ASSETS: Record<string, Asset> = {
     symbol: 'CST',
     name: 'ChainSync Token',
     decimals: 18,
-    address: '0xd62684427bc5a8b7eaDa01E3484f1Fa8d4bcDacD', // Testnet deployment (same on Sepolia & Arb Sepolia)
+    address: '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06', // Ethereum Mainnet deployment
     balance: '1000',
     usdPrice: 1.0,
   },
@@ -233,7 +233,7 @@ export const GOVERNANCE_CONFIG = {
 };
 
 export const API_ENDPOINTS = {
-  BASE_URL: (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api/v1',
+  BASE_URL: (import.meta as any).env?.VITE_API_URL || 'http://98.86.125.252:3001/api/v1',
   AUTH: '/auth',
   TRANSFERS: '/transfers',
   VALIDATORS: '/validators',
@@ -261,6 +261,6 @@ export function getCSTTokenAddress(chainId: number): string {
   if (addresses) {
     return addresses.cstToken;
   }
-  // Fallback to testnet address
-  return '0xd62684427bc5a8b7eaDa01E3484f1Fa8d4bcDacD';
+  // Fallback to Ethereum Mainnet address
+  return '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06';
 }
