@@ -22,7 +22,7 @@ export default function Home() {
 
     // Initialize Web3 Auth hook
     const web3Auth = useWeb3Auth({
-        apiUrl: 'http://localhost:3001',
+        apiUrl: 'http://98.86.125.252:3001',
         storageKey: 'chainsync_auth',
         autoRefresh: true,
     });
