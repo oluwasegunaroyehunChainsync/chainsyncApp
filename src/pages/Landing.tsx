@@ -22,7 +22,7 @@ export default function Home() {
 
     // Initialize Web3 Auth hook
     const web3Auth = useWeb3Auth({
-        apiUrl: 'https://api.chainsync.org',
+        apiUrl: 'https://api.chainsync.org/api/v1',
         storageKey: 'chainsync_auth',
         autoRefresh: true,
     });
