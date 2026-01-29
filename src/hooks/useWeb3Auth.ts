@@ -179,7 +179,7 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
   const requestChallenge = useCallback(
     async (address: string, chainId: number): Promise<{ message: string; nonce: string } | null> => {
       try {
-        const response = await fetch(`${apiUrl}/api/v1/auth/challenge`, {
+        const response = await fetch(`${apiUrl}/auth/challenge`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -250,7 +250,7 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
       chainId: number
     ): Promise<void> => {
       try {
-        const response = await fetch(`${apiUrl}/api/v1/auth/verify`, {
+        const response = await fetch(`${apiUrl}/auth/verify`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -400,7 +400,7 @@ export const useWeb3Auth = (config: Web3AuthConfig) => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/api/v1/auth/refresh`, {
+      const response = await fetch(`${apiUrl}/auth/refresh`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
