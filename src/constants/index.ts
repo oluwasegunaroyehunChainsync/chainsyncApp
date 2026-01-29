@@ -266,8 +266,20 @@ export const GOVERNANCE_CONFIG = {
   QUORUM_PERCENT: 40,
 };
 
+// Helper to ensure BASE_URL always has /api/v1 suffix
+const getBaseUrl = (): string => {
+  const envUrl = (import.meta as any).env?.VITE_API_URL || 'https://api.chainsync.org';
+  // Remove trailing slash if present
+  const cleanUrl = envUrl.replace(/\/$/, '');
+  // If URL doesn't already include /api/v1, add it
+  if (!cleanUrl.endsWith('/api/v1')) {
+    return `${cleanUrl}/api/v1`;
+  }
+  return cleanUrl;
+};
+
 export const API_ENDPOINTS = {
-  BASE_URL: (import.meta as any).env?.VITE_API_URL || 'https://api.chainsync.org/api/v1',
+  BASE_URL: getBaseUrl(),
   AUTH: '/auth',
   TRANSFERS: '/transfers',
   VALIDATORS: '/validators',
