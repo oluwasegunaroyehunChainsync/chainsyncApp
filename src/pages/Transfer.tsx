@@ -24,8 +24,8 @@ const TESTNET_CHAINS = Object.entries(SUPPORTED_CHAINS).filter(
 export default function Transfer() {
   const { wallet } = useWalletStore();
   const { initiateCrossChainTransfer, initiateSameChainTransfer, isLoading } = useTransferStore();
-  const [sourceChain, setSourceChain] = useState<ChainId>(11155111 as ChainId); // Default to Sepolia testnet
-  const [destChain, setDestChain] = useState<ChainId>(421614 as ChainId); // Default to Arbitrum Sepolia
+  const [sourceChain, setSourceChain] = useState<ChainId>(1 as ChainId); // Default to Ethereum Mainnet
+  const [destChain, setDestChain] = useState<ChainId>(1 as ChainId); // Default to Ethereum Mainnet (same-chain transfer)
   const [asset, setAsset] = useState('CST'); // Default to CST token for testing
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
