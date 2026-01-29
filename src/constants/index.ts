@@ -122,10 +122,10 @@ export const CONTRACT_ADDRESSES: Record<number, {
   // MAINNET ADDRESSES (Update after deployment)
   // ============================================
 
-  // Ethereum Mainnet (DEPLOYED 2026-01-27)
+  // Ethereum Mainnet (REDEPLOYED 2026-01-29 with SafeERC20 for USDT support)
   1: {
     cstToken: '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06',
-    chainSync: '0x692Eb018Ac9E62999ae984c05a877A01B9959570',
+    chainSync: '0x236484C9a7A37D6fb9eae83E8FfB1b34CB70a73B',
     validatorRegistry: '0x592C950515DAC7502225F4a461774abE7df0dBFD',
   },
   // Polygon Mainnet
