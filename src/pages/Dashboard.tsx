@@ -6,8 +6,20 @@ import { ethers } from 'ethers';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 
-// ETH price in USD (for demo purposes - in production, fetch from price API)
-const ETH_PRICE_USD = 3200;
+// Chain native token symbols
+const CHAIN_NATIVE_TOKENS: Record<number, { symbol: string; name: string }> = {
+  1: { symbol: 'ETH', name: 'Ethereum' },
+  137: { symbol: 'MATIC', name: 'Polygon' },
+  42161: { symbol: 'ETH', name: 'Arbitrum' },
+  10: { symbol: 'ETH', name: 'Optimism' },
+  56: { symbol: 'BNB', name: 'BNB Chain' },
+  43114: { symbol: 'AVAX', name: 'Avalanche' },
+  8453: { symbol: 'ETH', name: 'Base' },
+  31337: { symbol: 'ETH', name: 'Localhost' },
+};
+
+// Default ETH price (will be updated from API)
+const DEFAULT_ETH_PRICE = 3200;
 
 // Format number as USD currency
 const formatUSD = (amount: number): string => {
@@ -45,9 +57,9 @@ export default function Dashboard() {
 
       setIsLoadingBalance(true);
       try {
-        // Use direct RPC provider instead of BrowserProvider for reliability
-        // This ensures balance fetching works even if wallet provider state is lost
-        const provider = getReadOnlyProvider();
+        // Use wallet's chainId to ensure we're querying the correct network
+        const chainId = wallet.chainId as number || 1; // Default to Ethereum mainnet
+        const provider = getReadOnlyProvider(chainId);
         const balance = await provider.getBalance(wallet.address);
         const balanceInEth = ethers.formatEther(balance);
         setRealBalance(balanceInEth);
@@ -63,7 +75,7 @@ export default function Dashboard() {
     // Refresh balance every 30 seconds
     const interval = setInterval(fetchRealBalance, 30000);
     return () => clearInterval(interval);
-  }, [wallet?.address]);
+  }, [wallet?.address, wallet?.chainId]);
 
   // Fetch real staking data from ValidatorRegistry contract
   useEffect(() => {
@@ -94,9 +106,9 @@ export default function Dashboard() {
         t.status === 'pending' || t.status === 'processing'
       ).length;
 
-      const balanceInUSD = parseFloat(realBalance) * ETH_PRICE_USD;
-      const stakeInUSD = parseFloat(realStakingData.stake) * ETH_PRICE_USD;
-      const rewardsInUSD = parseFloat(realStakingData.rewards) * ETH_PRICE_USD;
+      const balanceInUSD = parseFloat(realBalance) * DEFAULT_ETH_PRICE;
+      const stakeInUSD = parseFloat(realStakingData.stake) * DEFAULT_ETH_PRICE;
+      const rewardsInUSD = parseFloat(realStakingData.rewards) * DEFAULT_ETH_PRICE;
 
       setStats([
         {
@@ -277,7 +289,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-gray-600 text-sm">Total Staked</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.stake) * ETH_PRICE_USD)}
+                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.stake) * DEFAULT_ETH_PRICE)}
                 </p>
                 <p className="text-sm text-gray-500">
                   {isLoadingStaking ? '' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`}
@@ -286,7 +298,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-gray-600 text-sm">Unclaimed Rewards</p>
                 <p className="text-2xl font-bold text-green-600 mt-1">
-                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.rewards) * ETH_PRICE_USD)}
+                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.rewards) * DEFAULT_ETH_PRICE)}
                 </p>
                 <p className="text-sm text-gray-500">
                   {isLoadingStaking ? '' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`}
@@ -379,10 +391,10 @@ export default function Dashboard() {
           <div>
             <p className="text-gray-600 text-sm">Balance</p>
             <p className="text-sm font-semibold text-gray-900 mt-1">
-              {isLoadingBalance ? 'Loading...' : formatUSD(parseFloat(realBalance) * ETH_PRICE_USD)}
+              {isLoadingBalance ? 'Loading...' : formatUSD(parseFloat(realBalance) * DEFAULT_ETH_PRICE)}
             </p>
             <p className="text-xs text-gray-500">
-              {isLoadingBalance ? '' : `${parseFloat(realBalance).toFixed(4)} ETH`}
+              {isLoadingBalance ? '' : `${parseFloat(realBalance).toFixed(4)} ${CHAIN_NATIVE_TOKENS[wallet.chainId as number]?.symbol || 'ETH'}`}
             </p>
           </div>
         </Card.Body>
