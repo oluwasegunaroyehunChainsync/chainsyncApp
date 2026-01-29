@@ -21,6 +21,34 @@ const TESTNET_CHAINS = Object.entries(SUPPORTED_CHAINS).filter(
   ([id]) => CONTRACT_ADDRESSES[Number(id)]
 );
 
+// CoinGecko IDs for supported assets
+const ASSET_COINGECKO_IDS: Record<string, string> = {
+  CST: 'ethereum', // CST tracks ETH price for now
+  WETH: 'ethereum',
+  USDC: 'usd-coin',
+  USDT: 'tether',
+  DAI: 'dai',
+  WBTC: 'bitcoin',
+  LINK: 'chainlink',
+  UNI: 'uniswap',
+  AAVE: 'aave',
+};
+
+// Default prices as fallback
+const DEFAULT_PRICES: Record<string, number> = {
+  ethereum: 3200,
+  'usd-coin': 1,
+  tether: 1,
+  dai: 1,
+  bitcoin: 95000,
+  chainlink: 15,
+  uniswap: 8,
+  aave: 180,
+};
+
+// CoinGecko API URL
+const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
+
 export default function Transfer() {
   const { wallet } = useWalletStore();
   const { initiateCrossChainTransfer, initiateSameChainTransfer, isLoading } = useTransferStore();
@@ -30,11 +58,47 @@ export default function Transfer() {
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [isTransferring, setIsTransferring] = useState(false); // Local guard to prevent double execution
+  const [tokenPrices, setTokenPrices] = useState<Record<string, number>>(DEFAULT_PRICES);
+
+  // Fetch token prices from CoinGecko
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const coinIds = Object.values(ASSET_COINGECKO_IDS).filter((v, i, a) => a.indexOf(v) === i).join(',');
+        const response = await fetch(`${COINGECKO_API_URL}?ids=${coinIds}&vs_currencies=usd`);
+        if (response.ok) {
+          const data = await response.json();
+          const prices: Record<string, number> = {};
+          Object.entries(data).forEach(([id, priceData]: [string, any]) => {
+            prices[id] = priceData.usd;
+          });
+          setTokenPrices(prices);
+        }
+      } catch (error) {
+        console.error('Failed to fetch token prices:', error);
+        // Keep using default prices on error
+      }
+    };
+
+    fetchPrices();
+    // Refresh prices every 60 seconds
+    const interval = setInterval(fetchPrices, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Update web3 utility with current chain when source chain changes
   useEffect(() => {
     setCurrentChainId(Number(sourceChain));
   }, [sourceChain]);
+
+  // Get USD value for current amount and asset
+  const getUsdValue = (tokenAmount: string, tokenSymbol: string): string => {
+    if (!tokenAmount || parseFloat(tokenAmount) <= 0) return '0.00';
+    const coingeckoId = ASSET_COINGECKO_IDS[tokenSymbol] || 'ethereum';
+    const price = tokenPrices[coingeckoId] || DEFAULT_PRICES[coingeckoId] || 0;
+    const usdValue = parseFloat(tokenAmount) * price;
+    return usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   const handleTransfer = async () => {
     // Prevent double execution
@@ -201,14 +265,21 @@ export default function Transfer() {
               </div>
 
               {/* Amount */}
-              <Input
-                label="Amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                suffix={asset}
-              />
+              <div>
+                <Input
+                  label="Amount"
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  suffix={asset}
+                />
+                {amount && parseFloat(amount) > 0 && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    ≈ <span className="font-semibold text-green-600">${getUsdValue(amount, asset)}</span> USD
+                  </p>
+                )}
+              </div>
 
               {/* Recipient Address */}
               <Input
@@ -269,14 +340,23 @@ export default function Transfer() {
               <div className="border-t border-gray-200 pt-4">
                 <p className="text-gray-600 text-sm">Amount</p>
                 <p className="text-lg font-semibold text-gray-900 mt-1">{amount || '0'} {asset}</p>
+                {amount && parseFloat(amount) > 0 && (
+                  <p className="text-sm text-green-600 mt-0.5">≈ ${getUsdValue(amount, asset)} USD</p>
+                )}
               </div>
               <div className="border-t border-gray-200 pt-4">
                 <p className="text-gray-600 text-sm">Network Fee (0.1%)</p>
                 <p className="text-lg font-semibold text-gray-900 mt-1">{fee} {asset}</p>
+                {parseFloat(fee) > 0 && (
+                  <p className="text-sm text-gray-500 mt-0.5">≈ ${getUsdValue(fee, asset)} USD</p>
+                )}
               </div>
               <div className="border-t border-gray-200 pt-4 bg-blue-50 -mx-4 -mb-4 px-4 py-4 rounded-b-lg">
                 <p className="text-gray-600 text-sm">Total Cost</p>
                 <p className="text-2xl font-bold text-blue-600 mt-1">{total} {asset}</p>
+                {parseFloat(total) > 0 && (
+                  <p className="text-sm text-green-700 font-medium mt-0.5">≈ ${getUsdValue(total, asset)} USD</p>
+                )}
               </div>
               <div className="pt-4 border-t border-gray-200">
                 <p className="text-gray-600 text-sm">Estimated Time</p>

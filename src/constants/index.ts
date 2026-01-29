@@ -171,46 +171,80 @@ export const CONTRACT_ADDRESSES: Record<number, {
   },
 };
 
+// Supported ERC20 tokens for transfers on ChainSync
+// Note: Native ETH is not supported - use WETH (Wrapped Ether) instead
 export const SUPPORTED_ASSETS: Record<string, Asset> = {
   CST: {
     symbol: 'CST',
     name: 'ChainSync Token',
     decimals: 18,
     address: '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06', // Ethereum Mainnet deployment
-    balance: '1000',
+    balance: '0',
     usdPrice: 1.0,
   },
-  ETH: {
-    symbol: 'ETH',
-    name: 'Ethereum',
+  WETH: {
+    symbol: 'WETH',
+    name: 'Wrapped Ether',
     decimals: 18,
-    address: '0x0000000000000000000000000000000000000000',
-    balance: '2.5',
-    usdPrice: 2450,
+    address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // Ethereum Mainnet WETH
+    balance: '0',
+    usdPrice: 3200,
   },
   USDC: {
     symbol: 'USDC',
     name: 'USD Coin',
     decimals: 6,
-    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    balance: '5000',
-    usdPrice: 1.0,
-  },
-  DAI: {
-    symbol: 'DAI',
-    name: 'Dai Stablecoin',
-    decimals: 18,
-    address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-    balance: '3000',
+    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // Ethereum Mainnet USDC
+    balance: '0',
     usdPrice: 1.0,
   },
   USDT: {
     symbol: 'USDT',
     name: 'Tether USD',
     decimals: 6,
-    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    balance: '2000',
+    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // Ethereum Mainnet USDT
+    balance: '0',
     usdPrice: 1.0,
+  },
+  DAI: {
+    symbol: 'DAI',
+    name: 'Dai Stablecoin',
+    decimals: 18,
+    address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', // Ethereum Mainnet DAI
+    balance: '0',
+    usdPrice: 1.0,
+  },
+  WBTC: {
+    symbol: 'WBTC',
+    name: 'Wrapped Bitcoin',
+    decimals: 8,
+    address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', // Ethereum Mainnet WBTC
+    balance: '0',
+    usdPrice: 95000,
+  },
+  LINK: {
+    symbol: 'LINK',
+    name: 'Chainlink',
+    decimals: 18,
+    address: '0x514910771AF9Ca656af840dff83E8264EcF986CA', // Ethereum Mainnet LINK
+    balance: '0',
+    usdPrice: 15,
+  },
+  UNI: {
+    symbol: 'UNI',
+    name: 'Uniswap',
+    decimals: 18,
+    address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', // Ethereum Mainnet UNI
+    balance: '0',
+    usdPrice: 8,
+  },
+  AAVE: {
+    symbol: 'AAVE',
+    name: 'Aave',
+    decimals: 18,
+    address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9', // Ethereum Mainnet AAVE
+    balance: '0',
+    usdPrice: 180,
   },
 };
 
