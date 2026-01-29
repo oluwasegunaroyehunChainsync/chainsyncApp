@@ -6,20 +6,33 @@ import { ethers } from 'ethers';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 
-// Chain native token symbols
-const CHAIN_NATIVE_TOKENS: Record<number, { symbol: string; name: string }> = {
-  1: { symbol: 'ETH', name: 'Ethereum' },
-  137: { symbol: 'MATIC', name: 'Polygon' },
-  42161: { symbol: 'ETH', name: 'Arbitrum' },
-  10: { symbol: 'ETH', name: 'Optimism' },
-  56: { symbol: 'BNB', name: 'BNB Chain' },
-  43114: { symbol: 'AVAX', name: 'Avalanche' },
-  8453: { symbol: 'ETH', name: 'Base' },
-  31337: { symbol: 'ETH', name: 'Localhost' },
+// Chain native token symbols and CoinGecko IDs
+const CHAIN_TOKEN_CONFIG: Record<number, { symbol: string; name: string; coingeckoId: string }> = {
+  1: { symbol: 'ETH', name: 'Ethereum', coingeckoId: 'ethereum' },
+  137: { symbol: 'MATIC', name: 'Polygon', coingeckoId: 'matic-network' },
+  42161: { symbol: 'ETH', name: 'Arbitrum', coingeckoId: 'ethereum' },
+  10: { symbol: 'ETH', name: 'Optimism', coingeckoId: 'ethereum' },
+  56: { symbol: 'BNB', name: 'BNB Chain', coingeckoId: 'binancecoin' },
+  43114: { symbol: 'AVAX', name: 'Avalanche', coingeckoId: 'avalanche-2' },
+  8453: { symbol: 'ETH', name: 'Base', coingeckoId: 'ethereum' },
+  250: { symbol: 'FTM', name: 'Fantom', coingeckoId: 'fantom' },
+  7000: { symbol: 'ZETA', name: 'ZetaChain', coingeckoId: 'zetachain' },
+  31337: { symbol: 'ETH', name: 'Localhost', coingeckoId: 'ethereum' },
 };
 
-// Default ETH price (will be updated from API)
-const DEFAULT_ETH_PRICE = 3200;
+
+// Default prices as fallback (will be updated from CoinGecko API)
+const DEFAULT_PRICES: Record<string, number> = {
+  ethereum: 3200,
+  'matic-network': 0.85,
+  binancecoin: 300,
+  'avalanche-2': 35,
+  fantom: 0.45,
+  zetachain: 0.75,
+};
+
+// CoinGecko API URL for fetching prices
+const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
 
 // Format number as USD currency
 const formatUSD = (amount: number): string => {
@@ -48,6 +61,59 @@ export default function Dashboard() {
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [realStakingData, setRealStakingData] = useState({ stake: '0', rewards: '0' });
   const [isLoadingStaking, setIsLoadingStaking] = useState(false);
+  const [tokenPrices, setTokenPrices] = useState<Record<string, number>>(DEFAULT_PRICES);
+  const [isLoadingPrices, setIsLoadingPrices] = useState(true);
+
+  // Track detected chainId from wallet
+  const [detectedChainId, setDetectedChainId] = useState<number>(1);
+
+  // Detect chain ID from connected wallet on mount and when wallet changes
+  useEffect(() => {
+    const detectChainId = async () => {
+      if (typeof window === 'undefined' || !window.ethereum) return;
+
+      try {
+        // Get chain ID directly from wallet
+        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' }) as string;
+        const chainId = parseInt(chainIdHex, 16);
+        console.log('Detected chain ID from wallet:', chainId);
+        setDetectedChainId(chainId);
+      } catch (error) {
+        console.error('Failed to detect chain ID:', error);
+        setDetectedChainId(1); // Default to Ethereum mainnet
+      }
+    };
+
+    detectChainId();
+
+    // Listen for chain changes
+    if (window.ethereum?.on) {
+      const handleChainChanged = (chainIdHex: string) => {
+        const chainId = parseInt(chainIdHex, 16);
+        console.log('Chain changed to:', chainId);
+        setDetectedChainId(chainId);
+      };
+      window.ethereum.on('chainChanged', handleChainChanged);
+      return () => {
+        window.ethereum?.removeListener?.('chainChanged', handleChainChanged);
+      };
+    }
+  }, [wallet?.address]);
+
+  // Get effective chain ID (prefer detected, fallback to stored, then default to 1)
+  const getEffectiveChainId = (): number => {
+    // First try the detected chainId from the wallet
+    if (detectedChainId && detectedChainId !== 31337) {
+      return detectedChainId;
+    }
+    // Then try wallet store chainId
+    const storedChainId = wallet?.chainId as number;
+    if (storedChainId && storedChainId !== 31337 && storedChainId !== 0) {
+      return storedChainId;
+    }
+    // Default to Ethereum mainnet
+    return 1;
+  };
 
   // Fetch real wallet balance from blockchain
   // Uses direct RPC provider for reliable read-only operations (doesn't depend on wallet connection state)
@@ -57,11 +123,13 @@ export default function Dashboard() {
 
       setIsLoadingBalance(true);
       try {
-        // Use wallet's chainId to ensure we're querying the correct network
-        const chainId = wallet.chainId as number || 1; // Default to Ethereum mainnet
+        // Use effective chainId to ensure we're querying the correct network
+        const chainId = getEffectiveChainId();
+        console.log('Fetching balance for chain:', chainId, 'address:', wallet.address);
         const provider = getReadOnlyProvider(chainId);
         const balance = await provider.getBalance(wallet.address);
         const balanceInEth = ethers.formatEther(balance);
+        console.log('Balance fetched:', balanceInEth);
         setRealBalance(balanceInEth);
       } catch (error) {
         console.error('Failed to fetch balance:', error);
@@ -75,7 +143,7 @@ export default function Dashboard() {
     // Refresh balance every 30 seconds
     const interval = setInterval(fetchRealBalance, 30000);
     return () => clearInterval(interval);
-  }, [wallet?.address, wallet?.chainId]);
+  }, [wallet?.address, detectedChainId]);
 
   // Fetch real staking data from ValidatorRegistry contract
   useEffect(() => {
@@ -100,15 +168,71 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [wallet?.address]);
 
+  // Fetch real-time token prices from CoinGecko
+  useEffect(() => {
+    const fetchPrices = async () => {
+      setIsLoadingPrices(true);
+      try {
+        // Get unique CoinGecko IDs from all supported chains
+        const coingeckoIds = [...new Set(Object.values(CHAIN_TOKEN_CONFIG).map(c => c.coingeckoId))];
+        const idsParam = coingeckoIds.join(',');
+
+        const response = await fetch(
+          `${COINGECKO_API_URL}?ids=${idsParam}&vs_currencies=usd`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`CoinGecko API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Transform response to our price format
+        const prices: Record<string, number> = {};
+        for (const [id, priceData] of Object.entries(data)) {
+          prices[id] = (priceData as { usd: number }).usd;
+        }
+
+        setTokenPrices(prices);
+        console.log('Token prices updated:', prices);
+      } catch (error) {
+        console.error('Failed to fetch token prices:', error);
+        // Keep using default prices on error
+      } finally {
+        setIsLoadingPrices(false);
+      }
+    };
+
+    fetchPrices();
+    // Refresh prices every 60 seconds (CoinGecko rate limits)
+    const interval = setInterval(fetchPrices, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper function to get current token price based on chain
+  const getTokenPrice = (chainId: number): number => {
+    const config = CHAIN_TOKEN_CONFIG[chainId] || CHAIN_TOKEN_CONFIG[1];
+    return tokenPrices[config.coingeckoId] || DEFAULT_PRICES[config.coingeckoId] || 0;
+  };
+
   useEffect(() => {
     if (wallet) {
       const activeTransfersCount = transfers.filter((t) =>
         t.status === 'pending' || t.status === 'processing'
       ).length;
 
-      const balanceInUSD = parseFloat(realBalance) * DEFAULT_ETH_PRICE;
-      const stakeInUSD = parseFloat(realStakingData.stake) * DEFAULT_ETH_PRICE;
-      const rewardsInUSD = parseFloat(realStakingData.rewards) * DEFAULT_ETH_PRICE;
+      const chainId = getEffectiveChainId();
+      const currentPrice = getTokenPrice(chainId);
+      const balanceInUSD = parseFloat(realBalance) * currentPrice;
+      // Staking is always in ETH
+      const ethPrice = tokenPrices['ethereum'] || DEFAULT_PRICES['ethereum'];
+      const stakeInUSD = parseFloat(realStakingData.stake) * ethPrice;
+      const rewardsInUSD = parseFloat(realStakingData.rewards) * ethPrice;
 
       setStats([
         {
@@ -141,7 +265,7 @@ export default function Dashboard() {
         },
       ]);
     }
-  }, [wallet, transfers, realBalance, isLoadingBalance, realStakingData, isLoadingStaking]);
+  }, [wallet, transfers, realBalance, isLoadingBalance, realStakingData, isLoadingStaking, tokenPrices, detectedChainId]);
 
   const recentTransfers = transfers.slice(0, 5);
   const activeProposals = proposals.filter((p) => p.status === 'active');
@@ -289,7 +413,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-gray-600 text-sm">Total Staked</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.stake) * DEFAULT_ETH_PRICE)}
+                  {isLoadingStaking || isLoadingPrices ? 'Loading...' : formatUSD(parseFloat(realStakingData.stake) * (tokenPrices['ethereum'] || DEFAULT_PRICES['ethereum']))}
                 </p>
                 <p className="text-sm text-gray-500">
                   {isLoadingStaking ? '' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`}
@@ -298,7 +422,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-gray-600 text-sm">Unclaimed Rewards</p>
                 <p className="text-2xl font-bold text-green-600 mt-1">
-                  {isLoadingStaking ? 'Loading...' : formatUSD(parseFloat(realStakingData.rewards) * DEFAULT_ETH_PRICE)}
+                  {isLoadingStaking || isLoadingPrices ? 'Loading...' : formatUSD(parseFloat(realStakingData.rewards) * (tokenPrices['ethereum'] || DEFAULT_PRICES['ethereum']))}
                 </p>
                 <p className="text-sm text-gray-500">
                   {isLoadingStaking ? '' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`}
@@ -378,12 +502,13 @@ export default function Dashboard() {
             <p className="text-gray-600 text-sm">Network</p>
             <p className="text-sm font-semibold text-gray-900 mt-1">
               {(() => {
-                const chainId = wallet.chainId as number;
+                const chainId = getEffectiveChainId();
+                const config = CHAIN_TOKEN_CONFIG[chainId];
+                if (config) return config.name;
                 if (chainId === 1) return 'Ethereum Mainnet';
                 if (chainId === 137) return 'Polygon';
                 if (chainId === 42161) return 'Arbitrum';
                 if (chainId === 10) return 'Optimism';
-                if (chainId === 31337) return 'Localhost';
                 return `Chain ${chainId}`;
               })()}
             </p>
@@ -391,10 +516,10 @@ export default function Dashboard() {
           <div>
             <p className="text-gray-600 text-sm">Balance</p>
             <p className="text-sm font-semibold text-gray-900 mt-1">
-              {isLoadingBalance ? 'Loading...' : formatUSD(parseFloat(realBalance) * DEFAULT_ETH_PRICE)}
+              {isLoadingBalance || isLoadingPrices ? 'Loading...' : formatUSD(parseFloat(realBalance) * getTokenPrice(getEffectiveChainId()))}
             </p>
             <p className="text-xs text-gray-500">
-              {isLoadingBalance ? '' : `${parseFloat(realBalance).toFixed(4)} ${CHAIN_NATIVE_TOKENS[wallet.chainId as number]?.symbol || 'ETH'}`}
+              {isLoadingBalance ? '' : `${parseFloat(realBalance).toFixed(4)} ${CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.symbol || 'ETH'}`}
             </p>
           </div>
         </Card.Body>
