@@ -328,12 +328,14 @@ export async function switchChain(chainId: number): Promise<void> {
 /**
  * Get user's staked amount in ValidatorRegistry
  * Uses direct RPC connection for reliable read operations
+ * @param userAddress - The user's wallet address
+ * @param chainId - Optional chain ID (defaults to Ethereum mainnet)
  */
-export async function getUserStakedAmount(userAddress: string): Promise<string> {
-  const addresses = getContractAddresses();
+export async function getUserStakedAmount(userAddress: string, chainId: number = 1): Promise<string> {
+  const addresses = getContractAddresses(chainId);
 
   // Use direct RPC provider for read-only operations
-  const provider = getReadOnlyProvider();
+  const provider = getReadOnlyProvider(chainId);
 
   const validatorRegistry = new ethers.Contract(
     addresses.validatorRegistry,
@@ -353,16 +355,18 @@ export async function getUserStakedAmount(userAddress: string): Promise<string> 
 /**
  * Get user's validator info (including rewards estimation)
  * Uses direct RPC connection for reliable read operations
+ * @param userAddress - The user's wallet address
+ * @param chainId - Optional chain ID (defaults to Ethereum mainnet)
  */
-export async function getUserValidatorInfo(userAddress: string): Promise<{
+export async function getUserValidatorInfo(userAddress: string, chainId: number = 1): Promise<{
   stake: string;
   isActive: boolean;
   rewards: string;
 }> {
-  const addresses = getContractAddresses();
+  const addresses = getContractAddresses(chainId);
 
   // Use direct RPC provider for read-only operations
-  const provider = getReadOnlyProvider();
+  const provider = getReadOnlyProvider(chainId);
 
   const validatorRegistry = new ethers.Contract(
     addresses.validatorRegistry,

@@ -152,7 +152,10 @@ export default function Dashboard() {
 
       setIsLoadingStaking(true);
       try {
-        const data = await getUserValidatorInfo(wallet.address);
+        // Use effective chainId to query the correct network
+        const chainId = getEffectiveChainId();
+        console.log('Fetching staking data for chain:', chainId);
+        const data = await getUserValidatorInfo(wallet.address, chainId);
         setRealStakingData({ stake: data.stake, rewards: data.rewards });
       } catch (error) {
         console.error('Failed to fetch staking data:', error);
@@ -166,7 +169,7 @@ export default function Dashboard() {
     // Refresh staking data every 30 seconds
     const interval = setInterval(fetchStakingData, 30000);
     return () => clearInterval(interval);
-  }, [wallet?.address]);
+  }, [wallet?.address, detectedChainId]);
 
   // Fetch real-time token prices from CoinGecko
   useEffect(() => {
