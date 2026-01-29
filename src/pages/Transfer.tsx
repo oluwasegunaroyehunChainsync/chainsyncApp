@@ -164,7 +164,9 @@ export default function Transfer() {
 
       // Step 2: Check token allowance
       notify.info('Checking token allowance...');
-      const amountBigInt = ethers.parseEther(formattedAmount);
+      // Use correct decimals for each token (USDT/USDC = 6, others = 18)
+      const tokenDecimals = SUPPORTED_ASSETS[asset as keyof typeof SUPPORTED_ASSETS]?.decimals || 18;
+      const amountBigInt = ethers.parseUnits(formattedAmount, tokenDecimals);
       const allowance = await checkAllowance(tokenAddress, wallet.address, contractAddresses.chainSync);
 
       // Step 3: Approve token if needed
@@ -179,9 +181,9 @@ export default function Transfer() {
       let txHash: string;
 
       if (sourceChain === destChain) {
-        txHash = await executeSameChainTransfer(tokenAddress, recipientAddress, formattedAmount);
+        txHash = await executeSameChainTransfer(tokenAddress, recipientAddress, formattedAmount, tokenDecimals);
       } else {
-        txHash = await executeCrossChainTransfer(tokenAddress, recipientAddress, formattedAmount, Number(destChain));
+        txHash = await executeCrossChainTransfer(tokenAddress, recipientAddress, formattedAmount, Number(destChain), tokenDecimals);
       }
 
       notify.success(`Transfer submitted! Transaction: ${txHash.substring(0, 10)}...`);

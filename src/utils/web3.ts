@@ -184,11 +184,16 @@ export async function approveToken(
 
 /**
  * Execute same-chain transfer on blockchain
+ * @param tokenAddress - The ERC20 token contract address
+ * @param recipientAddress - The recipient wallet address
+ * @param amount - The amount to transfer (as a string, e.g., "2.5")
+ * @param decimals - Token decimals (default 18, use 6 for USDT/USDC)
  */
 export async function executeSameChainTransfer(
   tokenAddress: string,
   recipientAddress: string,
-  amount: string
+  amount: string,
+  decimals: number = 18
 ): Promise<string> {
   const addresses = getContractAddresses();
 
@@ -201,7 +206,8 @@ export async function executeSameChainTransfer(
     signer
   );
 
-  const amountBigInt = ethers.parseEther(amount);
+  // Use parseUnits with correct decimals (USDT/USDC = 6, most others = 18)
+  const amountBigInt = ethers.parseUnits(amount, decimals);
 
   const tx = await chainSyncContract.transferSameChain(
     tokenAddress,
@@ -215,12 +221,18 @@ export async function executeSameChainTransfer(
 
 /**
  * Execute cross-chain transfer on blockchain
+ * @param tokenAddress - The ERC20 token contract address
+ * @param recipientAddress - The recipient wallet address
+ * @param amount - The amount to transfer (as a string, e.g., "2.5")
+ * @param destinationChainId - The destination chain ID
+ * @param decimals - Token decimals (default 18, use 6 for USDT/USDC)
  */
 export async function executeCrossChainTransfer(
   tokenAddress: string,
   recipientAddress: string,
   amount: string,
-  destinationChainId: number
+  destinationChainId: number,
+  decimals: number = 18
 ): Promise<string> {
   const addresses = getContractAddresses();
 
@@ -233,7 +245,8 @@ export async function executeCrossChainTransfer(
     signer
   );
 
-  const amountBigInt = ethers.parseEther(amount);
+  // Use parseUnits with correct decimals (USDT/USDC = 6, most others = 18)
+  const amountBigInt = ethers.parseUnits(amount, decimals);
 
   const tx = await chainSyncContract.initiateTransfer(
     tokenAddress,
