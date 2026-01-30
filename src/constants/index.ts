@@ -140,10 +140,10 @@ export const CONTRACT_ADDRESSES: Record<number, {
     chainSync: '0x0000000000000000000000000000000000000000', // TODO: Deploy
     validatorRegistry: '0x0000000000000000000000000000000000000000', // TODO: Deploy
   },
-  // Base Mainnet (Deployed 2026-01-30)
+  // Base Mainnet (Redeployed 2026-01-30 with relayTransfer)
   8453: {
     cstToken: '0xc2B916B687D97f9D7F5aB66d3E9F3C09Bd65F55F',
-    chainSync: '0x254Da651Ed9aFe16c041F585b392ECBFEFDaf07D',
+    chainSync: '0x10ad8653eba86adB6da714f4bf17085D6CaD93f6',
     validatorRegistry: '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06',
   },
 
