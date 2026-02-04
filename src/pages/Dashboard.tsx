@@ -13,6 +13,72 @@ const ERC20_ABI = [
   'function symbol() view returns (string)',
 ];
 
+// Token address to symbol mapping for display
+const TOKEN_ADDRESS_TO_SYMBOL: Record<string, string> = {
+  // Ethereum Mainnet
+  '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48': 'USDC',
+  '0xdAC17F958D2ee523a2206206994597C13D831ec7': 'USDT',
+  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 'WETH',
+  '0x6B175474E89094C44Da98b954EedeAC495271d0F': 'DAI',
+  '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599': 'WBTC',
+  '0x514910771AF9Ca656af840dff83E8264EcF986CA': 'LINK',
+  '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984': 'UNI',
+  '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9': 'AAVE',
+  '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06': 'CST',
+  // Base Mainnet
+  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913': 'USDC',
+  '0x4200000000000000000000000000000000000006': 'WETH',
+  '0xc2B916B687D97f9D7F5aB66d3E9F3C09Bd65F55F': 'CST',
+  // BSC Mainnet
+  '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d': 'USDC',
+  '0x55d398326f99059fF775485246999027B3197955': 'USDT',
+  '0x674B6ac6c6505CAf4E7C5203CCF58370B5Fa2839': 'CST',
+  // Polygon
+  '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359': 'USDC',
+  '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174': 'USDC.e',
+  '0xc2132D05D31c914a87C6611C10748AEb04B58e8F': 'USDT',
+  // Arbitrum
+  '0xaf88d065e77c8cC2239327C5EDb3A432268e5831': 'USDC',
+  '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8': 'USDC.e',
+  '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9': 'USDT',
+  '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1': 'WETH',
+};
+
+// Convert token address to symbol for display
+const getTokenSymbol = (addressOrSymbol: string): string => {
+  // If it's already a symbol (not an address), return as is
+  if (!addressOrSymbol.startsWith('0x')) {
+    return addressOrSymbol;
+  }
+  // Look up in mapping (case-insensitive)
+  const symbol = TOKEN_ADDRESS_TO_SYMBOL[addressOrSymbol] ||
+                 TOKEN_ADDRESS_TO_SYMBOL[addressOrSymbol.toLowerCase()];
+  if (symbol) return symbol;
+  // Return shortened address if not found
+  return `${addressOrSymbol.slice(0, 6)}...${addressOrSymbol.slice(-4)}`;
+};
+
+// Map blockchain transfer statuses to user-friendly display
+const getDisplayStatus = (status: string): { label: string; color: string } => {
+  const statusLower = status.toLowerCase();
+  switch (statusLower) {
+    case 'completed':
+    case 'relayed':
+      return { label: 'Completed', color: 'bg-green-100 text-green-800' };
+    case 'pending':
+    case 'initiated':
+      return { label: 'Initiated', color: 'bg-blue-100 text-blue-800' };
+    case 'locked':
+    case 'processing':
+      return { label: 'Processing', color: 'bg-yellow-100 text-yellow-800' };
+    case 'failed':
+    case 'error':
+      return { label: 'Failed', color: 'bg-red-100 text-red-800' };
+    default:
+      return { label: status.charAt(0).toUpperCase() + status.slice(1), color: 'bg-gray-100 text-gray-800' };
+  }
+};
+
 // Token balance interface with chain info
 interface TokenBalance {
   symbol: string;
@@ -116,7 +182,7 @@ interface StatCard {
 
 export default function Dashboard() {
   const { wallet, disconnectWallet } = useWalletStore();
-  const { transfers } = useTransferStore();
+  const { transfers, fetchTransferHistory } = useTransferStore();
   const { proposals } = useGovernanceStore();
   const [stats, setStats] = useState<StatCard[]>([]);
   const [realBalance, setRealBalance] = useState<string>('0.00');
@@ -423,6 +489,26 @@ export default function Dashboard() {
     }
   }, [wallet, transfers, realBalance, isLoadingBalance, realStakingData, isLoadingStaking, tokenPrices, detectedChainId]);
 
+  // Poll for transfer status updates
+  useEffect(() => {
+    // Initial fetch
+    fetchTransferHistory();
+
+    // Check if there are any pending/processing transfers that need status updates
+    const hasPendingTransfers = transfers.some(t =>
+      ['pending', 'initiated', 'locked', 'processing'].includes(t.status.toLowerCase())
+    );
+
+    // Poll more frequently if there are pending transfers
+    const pollInterval = hasPendingTransfers ? 15000 : 60000; // 15s if pending, 60s otherwise
+
+    const interval = setInterval(() => {
+      fetchTransferHistory();
+    }, pollInterval);
+
+    return () => clearInterval(interval);
+  }, [fetchTransferHistory, transfers.length]);
+
   const recentTransfers = transfers.slice(0, 5);
   const activeProposals = proposals.filter((p) => p.status === 'active');
 
@@ -599,30 +685,37 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {recentTransfers.map((transfer) => (
-                        <tr key={transfer.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-4">
-                            <span className="font-semibold text-gray-900">{transfer.asset}</span>
-                          </td>
-                          <td className="py-3 px-4 text-gray-900">{transfer.amount}</td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                                transfer.status === 'completed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : transfer.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {transfer.status.charAt(0).toUpperCase() + transfer.status.slice(1)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600 text-sm">
-                            {new Date(transfer.timestamp).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
+                      {recentTransfers.map((transfer) => {
+                        const displayStatus = getDisplayStatus(transfer.status);
+                        return (
+                          <tr key={transfer.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <td className="py-3 px-4">
+                              <span className="font-semibold text-gray-900">{getTokenSymbol(transfer.asset)}</span>
+                            </td>
+                            <td className="py-3 px-4 text-gray-900">{transfer.amount}</td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${displayStatus.color}`}>
+                                {displayStatus.label}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-gray-600 text-sm">
+                              {new Date(transfer.timestamp).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4">
+                              {transfer.sourceHash && (
+                                <a
+                                  href={`https://etherscan.io/tx/${transfer.sourceHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  View
+                                </a>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
