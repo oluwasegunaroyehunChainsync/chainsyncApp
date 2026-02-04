@@ -146,6 +146,12 @@ export const CONTRACT_ADDRESSES: Record<number, {
     chainSync: '0x10ad8653eba86adB6da714f4bf17085D6CaD93f6',
     validatorRegistry: '0xD2eb148c2ccb54e88F21529Aec74dd7ce2232b06',
   },
+  // BSC Mainnet (Deployed 2026-02-04)
+  56: {
+    cstToken: '0x674B6ac6c6505CAf4E7C5203CCF58370B5Fa2839',
+    chainSync: '0xa03a4Ab91562c983327Df7Ed3A71A5DDB1F18b71',
+    validatorRegistry: '0xa03a4Ab91562c983327Df7Ed3A71A5DDB1F18b71', // Same as chainSync on BSC
+  },
 
   // ============================================
   // TESTNET ADDRESSES (Currently Deployed)
