@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useWalletStore, useTransferStore, useGovernanceStore } from '@/stores';
 import { formatAddress } from '@/utils';
 import { getReadOnlyProvider, getUserValidatorInfo } from '@/utils/web3';
-import { SUPPORTED_ASSETS } from '@/constants';
 import { ethers } from 'ethers';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -14,7 +13,7 @@ const ERC20_ABI = [
   'function symbol() view returns (string)',
 ];
 
-// Token balance interface
+// Token balance interface with chain info
 interface TokenBalance {
   symbol: string;
   name: string;
@@ -22,29 +21,50 @@ interface TokenBalance {
   decimals: number;
   address: string;
   usdValue: number;
+  chainId: number;
+  chainName: string;
 }
 
-// Chain-specific token addresses (same as Transfer.tsx)
-const CHAIN_TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
+// Chain-specific token addresses for balance checking
+const CHAIN_TOKEN_ADDRESSES: Record<number, Record<string, { address: string; name: string; decimals: number; coingeckoId: string }>> = {
   // Ethereum Mainnet
   1: {
-    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-    WBTC: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
-    LINK: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
-    UNI: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
-    AAVE: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+    WETH: { address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', name: 'Wrapped Ether', decimals: 18, coingeckoId: 'ethereum' },
+    USDC: { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', name: 'USD Coin', decimals: 6, coingeckoId: 'usd-coin' },
+    USDT: { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', name: 'Tether USD', decimals: 6, coingeckoId: 'tether' },
+    DAI: { address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', name: 'Dai Stablecoin', decimals: 18, coingeckoId: 'dai' },
+    WBTC: { address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', name: 'Wrapped Bitcoin', decimals: 8, coingeckoId: 'bitcoin' },
+    LINK: { address: '0x514910771AF9Ca656af840dff83E8264EcF986CA', name: 'Chainlink', decimals: 18, coingeckoId: 'chainlink' },
+    UNI: { address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', name: 'Uniswap', decimals: 18, coingeckoId: 'uniswap' },
+    AAVE: { address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9', name: 'Aave', decimals: 18, coingeckoId: 'aave' },
+  },
+  // Arbitrum One
+  42161: {
+    ARB: { address: '0x912CE59144191C1204E64559FE8253a0e49E6548', name: 'Arbitrum', decimals: 18, coingeckoId: 'arbitrum' },
+    USDC: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', name: 'USD Coin', decimals: 6, coingeckoId: 'usd-coin' },
+    'USDC.e': { address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', name: 'Bridged USDC', decimals: 6, coingeckoId: 'usd-coin' },
+    USDT: { address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', name: 'Tether USD', decimals: 6, coingeckoId: 'tether' },
+    WETH: { address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', name: 'Wrapped Ether', decimals: 18, coingeckoId: 'ethereum' },
+    DAI: { address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', name: 'Dai Stablecoin', decimals: 18, coingeckoId: 'dai' },
   },
   // Base Mainnet
   8453: {
-    USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    USDC: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', name: 'USD Coin', decimals: 6, coingeckoId: 'usd-coin' },
+    WETH: { address: '0x4200000000000000000000000000000000000006', name: 'Wrapped Ether', decimals: 18, coingeckoId: 'ethereum' },
   },
   // BSC Mainnet
   56: {
-    USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
-    USDT: '0x55d398326f99059fF775485246999027B3197955',
+    USDC: { address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', name: 'USD Coin', decimals: 18, coingeckoId: 'usd-coin' },
+    USDT: { address: '0x55d398326f99059fF775485246999027B3197955', name: 'Tether USD', decimals: 18, coingeckoId: 'tether' },
+    BUSD: { address: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', name: 'Binance USD', decimals: 18, coingeckoId: 'binance-usd' },
+  },
+  // Polygon Mainnet
+  137: {
+    USDC: { address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', name: 'USD Coin', decimals: 6, coingeckoId: 'usd-coin' },
+    'USDC.e': { address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', name: 'Bridged USDC', decimals: 6, coingeckoId: 'usd-coin' },
+    USDT: { address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', name: 'Tether USD', decimals: 6, coingeckoId: 'tether' },
+    WETH: { address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', name: 'Wrapped Ether', decimals: 18, coingeckoId: 'ethereum' },
+    WMATIC: { address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', name: 'Wrapped Matic', decimals: 18, coingeckoId: 'matic-network' },
   },
 };
 
@@ -215,69 +235,94 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [wallet?.address, detectedChainId]);
 
-  // Fetch ERC20 token balances for the connected wallet
+  // Fetch ERC20 token balances across ALL chains for the connected wallet
   useEffect(() => {
-    const fetchTokenBalances = async () => {
+    const fetchAllChainBalances = async () => {
       if (!wallet?.address) return;
 
       setIsLoadingTokens(true);
-      try {
-        const chainId = getEffectiveChainId();
-        const provider = getReadOnlyProvider(chainId);
-        const chainTokens = CHAIN_TOKEN_ADDRESSES[chainId] || {};
+      const allBalances: TokenBalance[] = [];
 
-        const balances: TokenBalance[] = [];
+      console.log('Fetching token balances across all chains for:', wallet.address);
 
-        // Fetch balance for each token on this chain
-        for (const [symbol, address] of Object.entries(chainTokens)) {
+      // Query all chains in parallel
+      const chainPromises = Object.entries(CHAIN_TOKEN_ADDRESSES).map(async ([chainIdStr, chainTokens]) => {
+        const chainId = parseInt(chainIdStr);
+        const chainConfig = CHAIN_TOKEN_CONFIG[chainId];
+        const chainName = chainConfig?.name || `Chain ${chainId}`;
+
+        try {
+          const provider = getReadOnlyProvider(chainId);
+
+          // Also fetch native token balance for this chain
           try {
-            const contract = new ethers.Contract(address, ERC20_ABI, provider);
-            const balance = await contract.balanceOf(wallet.address);
-            const assetInfo = SUPPORTED_ASSETS[symbol as keyof typeof SUPPORTED_ASSETS];
-            const decimals = assetInfo?.decimals || 18;
-            const formattedBalance = ethers.formatUnits(balance, decimals);
-
-            // Only add tokens with non-zero balance
-            if (parseFloat(formattedBalance) > 0) {
-              // Get USD price from CoinGecko mapping
-              const coingeckoId = symbol === 'WETH' ? 'ethereum' :
-                                  symbol === 'USDC' || symbol === 'USDT' || symbol === 'DAI' ? 'usd-coin' :
-                                  symbol === 'WBTC' ? 'bitcoin' :
-                                  symbol === 'LINK' ? 'chainlink' :
-                                  symbol === 'UNI' ? 'uniswap' :
-                                  symbol === 'AAVE' ? 'aave' : 'ethereum';
-              const price = tokenPrices[coingeckoId] || 1;
-
-              balances.push({
-                symbol,
-                name: assetInfo?.name || symbol,
-                balance: formattedBalance,
-                decimals,
-                address,
-                usdValue: parseFloat(formattedBalance) * price,
+            const nativeBalance = await provider.getBalance(wallet.address);
+            const formattedNative = ethers.formatEther(nativeBalance);
+            if (parseFloat(formattedNative) > 0.000001) {
+              const nativePrice = tokenPrices[chainConfig?.coingeckoId || 'ethereum'] || 1;
+              allBalances.push({
+                symbol: chainConfig?.symbol || 'ETH',
+                name: `${chainConfig?.symbol || 'ETH'} (Native)`,
+                balance: formattedNative,
+                decimals: 18,
+                address: 'native',
+                usdValue: parseFloat(formattedNative) * nativePrice,
+                chainId,
+                chainName,
               });
             }
           } catch (err) {
-            console.error(`Failed to fetch balance for ${symbol}:`, err);
+            console.error(`Failed to fetch native balance on ${chainName}:`, err);
           }
-        }
 
+          // Fetch ERC20 token balances
+          for (const [symbol, tokenInfo] of Object.entries(chainTokens)) {
+            try {
+              const contract = new ethers.Contract(tokenInfo.address, ERC20_ABI, provider);
+              const balance = await contract.balanceOf(wallet.address);
+              const formattedBalance = ethers.formatUnits(balance, tokenInfo.decimals);
+
+              if (parseFloat(formattedBalance) > 0.000001) {
+                const price = tokenPrices[tokenInfo.coingeckoId] || 1;
+                allBalances.push({
+                  symbol,
+                  name: tokenInfo.name,
+                  balance: formattedBalance,
+                  decimals: tokenInfo.decimals,
+                  address: tokenInfo.address,
+                  usdValue: parseFloat(formattedBalance) * price,
+                  chainId,
+                  chainName,
+                });
+              }
+            } catch (err) {
+              // Silently skip failed token queries
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to query chain ${chainName}:`, err);
+        }
+      });
+
+      try {
+        await Promise.all(chainPromises);
         // Sort by USD value (highest first)
-        balances.sort((a, b) => b.usdValue - a.usdValue);
-        setTokenBalances(balances);
+        allBalances.sort((a, b) => b.usdValue - a.usdValue);
+        setTokenBalances(allBalances);
+        console.log('Total tokens found across all chains:', allBalances.length);
       } catch (error) {
-        console.error('Failed to fetch token balances:', error);
+        console.error('Failed to fetch multi-chain balances:', error);
         setTokenBalances([]);
       } finally {
         setIsLoadingTokens(false);
       }
     };
 
-    fetchTokenBalances();
-    // Refresh token balances every 30 seconds
-    const interval = setInterval(fetchTokenBalances, 30000);
+    fetchAllChainBalances();
+    // Refresh token balances every 60 seconds (longer interval due to multiple RPC calls)
+    const interval = setInterval(fetchAllChainBalances, 60000);
     return () => clearInterval(interval);
-  }, [wallet?.address, detectedChainId, tokenPrices]);
+  }, [wallet?.address, tokenPrices]);
 
   // Fetch real-time token prices from CoinGecko
   useEffect(() => {
@@ -599,97 +644,81 @@ export default function Dashboard() {
         </Card.Body>
       </Card>
 
-      {/* Token Balances */}
+      {/* Multi-Chain Token Balances */}
       <Card variant="elevated">
         <Card.Header>
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Your Token Balances</h2>
+            <h2 className="text-xl font-bold text-gray-900">Your Portfolio (All Networks)</h2>
             <span className="text-sm text-gray-500">
-              {CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.name || 'Network'}
+              {tokenBalances.length} tokens across {new Set(tokenBalances.map(t => t.chainId)).size} networks
             </span>
           </div>
         </Card.Header>
         <Card.Body>
           {isLoadingTokens ? (
             <div className="text-center py-8">
-              <p className="text-gray-600">Loading token balances...</p>
-            </div>
-          ) : (
-            <>
-              {/* Native Token Balance */}
-              <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
-                      {CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.symbol?.charAt(0) || 'E'}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.symbol || 'ETH'}
-                      </p>
-                      <p className="text-sm text-gray-500">Native Token</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900">
-                      {isLoadingBalance ? 'Loading...' : parseFloat(realBalance).toFixed(4)}
-                    </p>
-                    <p className="text-sm text-green-600 font-medium">
-                      {isLoadingBalance || isLoadingPrices ? '' : formatUSD(parseFloat(realBalance) * getTokenPrice(getEffectiveChainId()))}
-                    </p>
-                  </div>
-                </div>
+              <div className="animate-pulse">
+                <p className="text-gray-600">Scanning all networks for tokens...</p>
+                <p className="text-sm text-gray-400 mt-2">Checking Ethereum, Arbitrum, Base, BSC, Polygon...</p>
               </div>
-
-              {/* ERC20 Token Balances */}
-              {tokenBalances.length > 0 ? (
-                <div className="space-y-3">
-                  {tokenBalances.map((token) => (
-                    <div key={token.symbol} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                            {token.symbol.slice(0, 2)}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{token.symbol}</p>
-                            <p className="text-sm text-gray-500">{token.name}</p>
-                          </div>
+            </div>
+          ) : tokenBalances.length > 0 ? (
+            <>
+              {/* Token List */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {tokenBalances.map((token, index) => (
+                  <div key={`${token.chainId}-${token.symbol}-${index}`} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                          token.address === 'native'
+                            ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                            : 'bg-gradient-to-br from-gray-400 to-gray-600'
+                        }`}>
+                          {token.symbol.slice(0, 2)}
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-900">
-                            {parseFloat(token.balance).toFixed(token.decimals === 6 ? 2 : 4)}
-                          </p>
-                          <p className="text-sm text-green-600 font-medium">
-                            {formatUSD(token.usdValue)}
-                          </p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900">{token.symbol}</p>
+                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                              {token.chainName}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500">{token.name}</p>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">
+                          {parseFloat(token.balance).toFixed(token.decimals === 6 ? 2 : 4)}
+                        </p>
+                        <p className="text-sm text-green-600 font-medium">
+                          {formatUSD(token.usdValue)}
+                        </p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <p>No ERC20 tokens found on this network</p>
-                  <p className="text-sm mt-1">Tokens will appear here when you have a balance</p>
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
 
               {/* Total Portfolio Value */}
-              {(parseFloat(realBalance) > 0 || tokenBalances.length > 0) && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex justify-between items-center">
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <div>
                     <p className="text-gray-600 font-medium">Total Portfolio Value</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {formatUSD(
-                        (parseFloat(realBalance) * getTokenPrice(getEffectiveChainId())) +
-                        tokenBalances.reduce((sum, t) => sum + t.usdValue, 0)
-                      )}
-                    </p>
+                    <p className="text-xs text-gray-400">Across all networks</p>
                   </div>
+                  <p className="text-2xl font-bold text-green-600">
+                    {formatUSD(tokenBalances.reduce((sum, t) => sum + t.usdValue, 0))}
+                  </p>
                 </div>
-              )}
+              </div>
             </>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg">No tokens found</p>
+              <p className="text-sm mt-1">We scanned Ethereum, Arbitrum, Base, BSC, and Polygon</p>
+              <p className="text-sm">Tokens will appear here when you have a balance</p>
+            </div>
           )}
         </Card.Body>
       </Card>
