@@ -16,6 +16,7 @@ import Dashboard from '@/pages/Dashboard';
 import Transfer from '@/pages/Transfer';
 import Validators from '@/pages/Validators';
 import Governance from '@/pages/Governance';
+import Settings from '@/pages/Settings';
 import NotFound from '@/pages/NotFound';
 import { Web3AuthProvider } from "@/contexts/Web3AuthContext";
 
@@ -28,7 +29,7 @@ function Router() {
     const [location] = useLocation();
 
     // Check if we're on a protected page
-    const isProtectedPage = ['/dashboard', '/transfer', '/validators', '/governance'].includes(location);
+    const isProtectedPage = ['/dashboard', '/transfer', '/validators', '/governance', '/settings'].includes(location);
     const showLayout = wallet && isProtectedPage;
 
     return (
@@ -103,6 +104,25 @@ function Router() {
                             <main className="flex-1 overflow-auto">
                                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                                     <Governance />
+                                </div>
+                            </main>
+                        </div>
+                    </div>
+                ) : (
+                    <Landing />
+                )}
+            </Route>
+
+            {/* Protected Routes - Settings */}
+            <Route path="/settings">
+                {showLayout ? (
+                    <div className="flex h-screen bg-gray-50">
+                        <Sidebar />
+                        <div className="flex-1 flex flex-col overflow-hidden">
+                            <Header />
+                            <main className="flex-1 overflow-auto">
+                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                                    <Settings />
                                 </div>
                             </main>
                         </div>
