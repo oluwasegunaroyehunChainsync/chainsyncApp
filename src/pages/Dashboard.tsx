@@ -64,18 +64,18 @@ const getDisplayStatus = (status: string): { label: string; color: string } => {
   switch (statusLower) {
     case 'completed':
     case 'relayed':
-      return { label: 'Completed', color: 'bg-green-100 text-green-800' };
+      return { label: 'Completed', color: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' };
     case 'pending':
     case 'initiated':
-      return { label: 'Initiated', color: 'bg-blue-100 text-blue-800' };
+      return { label: 'Initiated', color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300' };
     case 'locked':
     case 'processing':
-      return { label: 'Processing', color: 'bg-yellow-100 text-yellow-800' };
+      return { label: 'Processing', color: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' };
     case 'failed':
     case 'error':
-      return { label: 'Failed', color: 'bg-red-100 text-red-800' };
+      return { label: 'Failed', color: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300' };
     default:
-      return { label: status.charAt(0).toUpperCase() + status.slice(1), color: 'bg-gray-100 text-gray-800' };
+      return { label: status.charAt(0).toUpperCase() + status.slice(1), color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' };
   }
 };
 
@@ -176,7 +176,7 @@ export default function Dashboard() {
   const { wallet, disconnectWallet } = useWalletStore();
   const { transfers, fetchTransferHistory } = useTransferStore();
   const { proposals } = useGovernanceStore();
-  const { currency } = useSettingsStore();
+  const { currency, theme, updateSetting } = useSettingsStore();
   const [stats, setStats] = useState<StatCard[]>([]);
 
   // Format number using currency from settings
@@ -516,8 +516,8 @@ export default function Dashboard() {
         <Card variant="elevated" className="max-w-md w-full mx-4">
           <Card.Body className="text-center space-y-4">
             <div className="text-5xl">🔗</div>
-            <h2 className="text-2xl font-bold text-gray-900">Wallet Not Connected</h2>
-            <p className="text-gray-600">Please connect your wallet to access the dashboard</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Wallet Not Connected</h2>
+            <p className="text-gray-600 dark:text-gray-400">Please connect your wallet to access the dashboard</p>
             <Button variant="primary" fullWidth>
               Connect Wallet
             </Button>
@@ -532,15 +532,31 @@ export default function Dashboard() {
       {/* Page Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome to ChainSync. Your cross-chain settlement hub.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Welcome to ChainSync. Your cross-chain settlement hub.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
           <div className="text-left sm:text-right w-full sm:w-auto">
-            <p className="text-sm text-gray-600">Connected Wallet</p>
-            <p className="text-sm sm:text-lg font-mono font-semibold text-gray-900 break-words">{formatAddress(wallet.address)}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Connected Wallet</p>
+            <p className="text-sm sm:text-lg font-mono font-semibold text-gray-900 dark:text-white break-words">{formatAddress(wallet.address)}</p>
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => updateSetting('theme', theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              )}
+            </button>
             <Button
               variant="outline"
               size="sm"
@@ -559,8 +575,8 @@ export default function Dashboard() {
           <Card key={index} variant="elevated">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
               </div>
               <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-lg flex items-center justify-center text-2xl`}>
                 {stat.icon}
@@ -568,8 +584,8 @@ export default function Dashboard() {
             </div>
             {stat.change && (
               <div className="flex items-center gap-2">
-                <span className="text-green-600 text-sm font-semibold">{stat.change}</span>
-                <span className="text-gray-500 text-sm">from last month</span>
+                <span className="text-green-600 dark:text-green-400 text-sm font-semibold">{stat.change}</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm">from last month</span>
               </div>
             )}
           </Card>
@@ -580,8 +596,8 @@ export default function Dashboard() {
       <Card variant="elevated">
         <Card.Header>
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Your Portfolio (All Networks)</h2>
-            <span className="text-sm text-gray-500">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Portfolio (All Networks)</h2>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               {tokenBalances.length} tokens across {new Set(tokenBalances.map(t => t.chainId)).size} networks
             </span>
           </div>
@@ -590,8 +606,8 @@ export default function Dashboard() {
           {isLoadingTokens ? (
             <div className="text-center py-8">
               <div className="animate-pulse">
-                <p className="text-gray-600">Scanning all networks for tokens...</p>
-                <p className="text-sm text-gray-400 mt-2">Checking Ethereum, Arbitrum, Base, BSC, Polygon...</p>
+                <p className="text-gray-600 dark:text-gray-400">Scanning all networks for tokens...</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Checking Ethereum, Arbitrum, Base, BSC, Polygon...</p>
               </div>
             </div>
           ) : tokenBalances.length > 0 ? (
@@ -599,7 +615,7 @@ export default function Dashboard() {
               {/* Token List */}
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {tokenBalances.map((token, index) => (
-                  <div key={`${token.chainId}-${token.symbol}-${index}`} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={`${token.chainId}-${token.symbol}-${index}`} className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
@@ -611,19 +627,19 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold text-gray-900">{token.symbol}</p>
-                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                            <p className="font-semibold text-gray-900 dark:text-white">{token.symbol}</p>
+                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
                               {token.chainName}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-500">{token.name}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{token.name}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">
+                        <p className="font-bold text-gray-900 dark:text-white">
                           {parseFloat(token.balance).toFixed(token.decimals === 6 ? 2 : 4)}
                         </p>
-                        <p className="text-sm text-green-600 font-medium">
+                        <p className="text-sm text-green-600 dark:text-green-400 font-medium">
                           {formatUSD(token.usdValue)}
                         </p>
                       </div>
@@ -633,20 +649,20 @@ export default function Dashboard() {
               </div>
 
               {/* Total Portfolio Value */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-gray-600 font-medium">Total Portfolio Value</p>
-                    <p className="text-xs text-gray-400">Across all networks</p>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium">Total Portfolio Value</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Across all networks</p>
                   </div>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {formatUSD(tokenBalances.reduce((sum, t) => sum + t.usdValue, 0))}
                   </p>
                 </div>
               </div>
             </>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <p className="text-lg">No tokens found</p>
               <p className="text-sm mt-1">We scanned Ethereum, Arbitrum, Base, BSC, and Polygon</p>
               <p className="text-sm">Tokens will appear here when you have a balance</p>
@@ -662,8 +678,8 @@ export default function Dashboard() {
           <Card variant="elevated">
             <Card.Header>
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-900">Recent Transactions</h2>
-                <a href="/transfer" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Transactions</h2>
+                <a href="/transfer" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm">
                   View all →
                 </a>
               </div>
@@ -673,30 +689,29 @@ export default function Dashboard() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Asset</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amount</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">View Explorer</th>
-
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Asset</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Amount</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Date</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">View Explorer</th>
                       </tr>
                     </thead>
                     <tbody>
                       {recentTransfers.map((transfer) => {
                         const displayStatus = getDisplayStatus(transfer.status);
                         return (
-                          <tr key={transfer.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <tr key={transfer.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                             <td className="py-3 px-4">
-                              <span className="font-semibold text-gray-900">{getTokenSymbol(transfer.asset)}</span>
+                              <span className="font-semibold text-gray-900 dark:text-white">{getTokenSymbol(transfer.asset)}</span>
                             </td>
-                            <td className="py-3 px-4 text-gray-900">{transfer.amount}</td>
+                            <td className="py-3 px-4 text-gray-900 dark:text-white">{transfer.amount}</td>
                             <td className="py-3 px-4">
                               <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${displayStatus.color}`}>
                                 {displayStatus.label}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-gray-600 text-sm">
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-sm">
                               {new Date(transfer.timestamp).toLocaleDateString()}
                             </td>
                             <td className="py-3 px-4">
@@ -705,7 +720,7 @@ export default function Dashboard() {
                                   href={`https://etherscan.io/tx/${transfer.sourceHash}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 text-sm"
+                                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
                                 >
                                   View
                                 </a>
@@ -719,7 +734,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">No transfers yet</p>
+                  <p className="text-gray-600 dark:text-gray-400">No transfers yet</p>
                   <Button variant="outline" size="sm" className="mt-4">
                     Start your first transfer
                   </Button>
@@ -733,24 +748,24 @@ export default function Dashboard() {
         <div className="space-y-6">
           <Card variant="elevated">
             <Card.Header>
-              <h2 className="text-xl font-bold text-gray-900">Staking Summary</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Staking Summary</h2>
             </Card.Header>
             <Card.Body className="space-y-4">
               <div>
-                <p className="text-gray-600 text-sm">Total Staked</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Staked</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                   {isLoadingStaking || isLoadingPrices ? 'Loading...' : formatUSD(parseFloat(realStakingData.stake) * (tokenPrices['ethereum'] || DEFAULT_PRICES['ethereum']))}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {isLoadingStaking ? '' : `${parseFloat(realStakingData.stake).toFixed(6)} ETH`}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">Unclaimed Rewards</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Unclaimed Rewards</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
                   {isLoadingStaking || isLoadingPrices ? 'Loading...' : formatUSD(parseFloat(realStakingData.rewards) * (tokenPrices['ethereum'] || DEFAULT_PRICES['ethereum']))}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {isLoadingStaking ? '' : `${parseFloat(realStakingData.rewards).toFixed(6)} ETH`}
                 </p>
               </div>
@@ -762,22 +777,22 @@ export default function Dashboard() {
 
           <Card variant="elevated">
             <Card.Header>
-              <h2 className="text-xl font-bold text-gray-900">Active Proposals</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Active Proposals</h2>
             </Card.Header>
             <Card.Body>
               {activeProposals.length > 0 ? (
                 <div className="space-y-3">
                   {activeProposals.slice(0, 3).map((proposal) => (
-                    <div key={proposal.id} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                      <p className="font-semibold text-gray-900 text-sm">{proposal.title}</p>
-                      <p className="text-gray-600 text-xs mt-1">
+                    <div key={proposal.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">{proposal.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
                         {Math.round((parseInt(proposal.votesFor) / parseInt(proposal.totalVotes)) * 100)}% voting
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600 text-sm">No active proposals</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">No active proposals</p>
               )}
               <Button variant="outline" fullWidth className="mt-4">
                 View all proposals
@@ -790,25 +805,25 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <Card variant="elevated">
         <Card.Header>
-          <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quick Actions</h2>
         </Card.Header>
         <Card.Body>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <a href="/transfer" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <a href="/transfer" className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center">
               <div className="text-2xl mb-2">🔄</div>
-              <p className="text-sm font-semibold text-gray-900">Transfer</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Transfer</p>
             </a>
-            <a href="/validators" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <a href="/validators" className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center">
               <div className="text-2xl mb-2">📈</div>
-              <p className="text-sm font-semibold text-gray-900">Stake</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Stake</p>
             </a>
-            <a href="/governance" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <a href="/governance" className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center">
               <div className="text-2xl mb-2">🗳️</div>
-              <p className="text-sm font-semibold text-gray-900">Vote</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Vote</p>
             </a>
-            <button type="button" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <button type="button" className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center">
               <div className="text-2xl mb-2">📊</div>
-              <p className="text-sm font-semibold text-gray-900">Analytics</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Analytics</p>
             </button>
           </div>
         </Card.Body>
@@ -817,16 +832,16 @@ export default function Dashboard() {
       {/* Wallet Info */}
       <Card variant="outlined">
         <Card.Header>
-          <h2 className="text-xl font-bold text-gray-900">Wallet Information</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Wallet Information</h2>
         </Card.Header>
         <Card.Body className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <p className="text-gray-600 text-sm">Address</p>
-            <p className="text-sm font-mono text-gray-900 mt-1 break-all">{wallet.address}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Address</p>
+            <p className="text-sm font-mono text-gray-900 dark:text-white mt-1 break-all">{wallet.address}</p>
           </div>
           <div>
-            <p className="text-gray-600 text-sm">Network</p>
-            <p className="text-sm font-semibold text-gray-900 mt-1">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Network</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1">
               {(() => {
                 const chainId = getEffectiveChainId();
                 const config = CHAIN_TOKEN_CONFIG[chainId];
@@ -840,11 +855,11 @@ export default function Dashboard() {
             </p>
           </div>
           <div>
-            <p className="text-gray-600 text-sm">Native Balance</p>
-            <p className="text-sm font-semibold text-gray-900 mt-1">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Native Balance</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1">
               {isLoadingBalance || isLoadingPrices ? 'Loading...' : formatUSD(parseFloat(realBalance) * getTokenPrice(getEffectiveChainId()))}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {isLoadingBalance ? '' : `${parseFloat(realBalance).toFixed(4)} ${CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.symbol || 'ETH'}`}
             </p>
           </div>

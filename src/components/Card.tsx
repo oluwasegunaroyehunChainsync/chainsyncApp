@@ -26,8 +26,8 @@ interface CardFooterProps {
 function Card({ children, variant = 'elevated', padding = 'md', className }: CardProps) {
   const paddingClass = { sm: 'p-3', md: 'p-6', lg: 'p-8' };
   const variantClass = {
-    elevated: 'bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow',
-    outlined: 'bg-white rounded-lg border border-gray-300',
+    elevated: 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow',
+    outlined: 'bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600',
   };
 
   return (
@@ -38,7 +38,7 @@ function Card({ children, variant = 'elevated', padding = 'md', className }: Car
 }
 
 function CardHeader({ children, className }: CardHeaderProps) {
-  return <div className={cn('border-b border-gray-200 pb-4 mb-4', className)}>{children}</div>;
+  return <div className={cn('border-b border-gray-200 dark:border-gray-700 pb-4 mb-4', className)}>{children}</div>;
 }
 
 function CardBody({ children, className }: CardBodyProps) {
@@ -46,7 +46,7 @@ function CardBody({ children, className }: CardBodyProps) {
 }
 
 function CardFooter({ children, className }: CardFooterProps) {
-  return <div className={cn('border-t border-gray-200 pt-4 mt-4', className)}>{children}</div>;
+  return <div className={cn('border-t border-gray-200 dark:border-gray-700 pt-4 mt-4', className)}>{children}</div>;
 }
 
 Card.Header = CardHeader;

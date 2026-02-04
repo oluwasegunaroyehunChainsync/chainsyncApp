@@ -38,8 +38,8 @@ export default function Governance() {
   return (
     <div className="container px-4 sm:px-6 md:px-8 mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Governance</h1>
-        <p className="text-gray-600 mt-1">Participate in protocol governance and shape the future of ChainSync</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Governance</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Participate in protocol governance and shape the future of ChainSync</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -48,7 +48,7 @@ export default function Governance() {
           {/* Active Proposals */}
           <Card variant="elevated">
             <Card.Header>
-              <h2 className="text-xl font-bold text-gray-900">Active Proposals</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Active Proposals</h2>
             </Card.Header>
             <Card.Body>
               <div className="space-y-4">
@@ -63,38 +63,38 @@ export default function Governance() {
                       onClick={() => setSelectedProposal(proposal.id)}
                       className={`p-4 border rounded-lg cursor-pointer transition-all ${
                         selectedProposal === proposal.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
-                      <p className="font-semibold text-gray-900 mb-3">{proposal.title}</p>
-                      <p className="text-sm text-gray-600 mb-4">{proposal.description}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white mb-3">{proposal.title}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{proposal.description}</p>
                       <div className="space-y-2">
                         <div>
                           <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">For</span>
-                            <span className="font-semibold text-green-600">{forPercent}%</span>
+                            <span className="text-gray-600 dark:text-gray-400">For</span>
+                            <span className="font-semibold text-green-600 dark:text-green-400">{forPercent}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div className="bg-green-500 h-2 rounded-full" style={{ width: `${forPercent}%` }}></div>
                           </div>
                         </div>
                         <div>
                           <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Against</span>
-                            <span className="font-semibold text-red-600">{againstPercent}%</span>
+                            <span className="text-gray-600 dark:text-gray-400">Against</span>
+                            <span className="font-semibold text-red-600 dark:text-red-400">{againstPercent}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div className="bg-red-500 h-2 rounded-full" style={{ width: `${againstPercent}%` }}></div>
                           </div>
                         </div>
                         <div>
                           <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Abstain</span>
-                            <span className="font-semibold text-gray-600">{abstainPercent}%</span>
+                            <span className="text-gray-600 dark:text-gray-400">Abstain</span>
+                            <span className="font-semibold text-gray-600 dark:text-gray-400">{abstainPercent}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-gray-400 h-2 rounded-full" style={{ width: `${abstainPercent}%` }}></div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="bg-gray-400 dark:bg-gray-500 h-2 rounded-full" style={{ width: `${abstainPercent}%` }}></div>
                           </div>
                         </div>
                       </div>
@@ -109,14 +109,14 @@ export default function Governance() {
           {passedProposals.length > 0 && (
             <Card variant="elevated">
               <Card.Header>
-                <h2 className="text-xl font-bold text-gray-900">Passed Proposals</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Passed Proposals</h2>
               </Card.Header>
               <Card.Body>
                 <div className="space-y-3">
                   {passedProposals.map((proposal) => (
-                    <div key={proposal.id} className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="font-semibold text-gray-900">{proposal.title}</p>
-                      <p className="text-sm text-gray-600 mt-1">✓ Passed</p>
+                    <div key={proposal.id} className="p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="font-semibold text-gray-900 dark:text-white">{proposal.title}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">✓ Passed</p>
                     </div>
                   ))}
                 </div>
@@ -128,23 +128,23 @@ export default function Governance() {
         {/* Voting Panel */}
         <Card variant="elevated">
           <Card.Header>
-            <h2 className="text-xl font-bold text-gray-900">Cast Your Vote</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Cast Your Vote</h2>
           </Card.Header>
           <Card.Body className="space-y-4">
             {selectedProposal ? (
               <>
                 <div>
-                  <p className="text-gray-600 text-sm">Selected Proposal</p>
-                  <p className="font-semibold text-gray-900 mt-1 text-sm">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Selected Proposal</p>
+                  <p className="font-semibold text-gray-900 dark:text-white mt-1 text-sm">
                     {proposals.find((p) => p.id === selectedProposal)?.title}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Your Vote</label>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Your Vote</label>
                   <div className="space-y-2">
                     {(['for', 'against', 'abstain'] as const).map((choice) => (
-                      <label key={choice} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label key={choice} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
                         <input
                           type="radio"
                           name="vote"
@@ -153,7 +153,7 @@ export default function Governance() {
                           onChange={(e) => setSelectedChoice(e.target.value as typeof choice)}
                           className="w-4 h-4"
                         />
-                        <span className="text-gray-900 font-medium capitalize">{choice}</span>
+                        <span className="text-gray-900 dark:text-white font-medium capitalize">{choice}</span>
                       </label>
                     ))}
                   </div>
@@ -178,7 +178,7 @@ export default function Governance() {
                 </Button>
               </>
             ) : (
-              <p className="text-gray-600 text-center py-8">Select a proposal to vote</p>
+              <p className="text-gray-600 dark:text-gray-400 text-center py-8">Select a proposal to vote</p>
             )}
           </Card.Body>
         </Card>
@@ -189,22 +189,22 @@ export default function Governance() {
         <Card variant="outlined">
           <Card.Body className="space-y-3">
             <p className="text-3xl">🗳️</p>
-            <h3 className="font-semibold text-gray-900">Democratic</h3>
-            <p className="text-sm text-gray-600">One token, one vote. Community-driven decisions</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Democratic</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">One token, one vote. Community-driven decisions</p>
           </Card.Body>
         </Card>
         <Card variant="outlined">
           <Card.Body className="space-y-3">
             <p className="text-3xl">⏱️</p>
-            <h3 className="font-semibold text-gray-900">Transparent</h3>
-            <p className="text-sm text-gray-600">All voting records on-chain and immutable</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Transparent</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">All voting records on-chain and immutable</p>
           </Card.Body>
         </Card>
         <Card variant="outlined">
           <Card.Body className="space-y-3">
             <p className="text-3xl">🚀</p>
-            <h3 className="font-semibold text-gray-900">Impactful</h3>
-            <p className="text-sm text-gray-600">Your vote directly shapes protocol upgrades</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Impactful</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Your vote directly shapes protocol upgrades</p>
           </Card.Body>
         </Card>
       </div>

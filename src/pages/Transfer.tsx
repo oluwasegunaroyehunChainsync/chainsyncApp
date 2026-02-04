@@ -282,8 +282,8 @@ export default function Transfer() {
   return (
     <div className="container px-4 sm:px-6 md:px-8 mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Cross-Chain Transfer</h1>
-        <p className="text-gray-600 mt-1">Transfer assets across blockchains with atomic settlement</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Cross-Chain Transfer</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Transfer assets across blockchains with atomic settlement</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -291,16 +291,16 @@ export default function Transfer() {
         <div className="lg:col-span-2">
           <Card variant="elevated">
             <Card.Header>
-              <h2 className="text-xl font-bold text-gray-900">Initiate Transfer</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Initiate Transfer</h2>
             </Card.Header>
             <Card.Body className="space-y-6">
               {/* Source Chain */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">From Chain</label>
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">From Chain</label>
                 <select
                   value={sourceChain}
                   onChange={(e) => setSourceChain(Number(e.target.value) as ChainId)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   {TESTNET_CHAINS.map(([id, chain]) => (
                     <option key={id} value={id}>
@@ -312,11 +312,11 @@ export default function Transfer() {
 
               {/* Asset Selection - Filtered by selected chain */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Asset</label>
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Asset</label>
                 <select
                   value={asset}
                   onChange={(e) => setAsset(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   {Object.entries(SUPPORTED_ASSETS)
                     .filter(([symbol]) => getChainTokens(Number(sourceChain)).includes(symbol))
@@ -326,7 +326,7 @@ export default function Transfer() {
                       </option>
                     ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Showing tokens available on {SUPPORTED_CHAINS[sourceChain as keyof typeof SUPPORTED_CHAINS]?.name || 'selected chain'}
                 </p>
               </div>
@@ -342,8 +342,8 @@ export default function Transfer() {
                   suffix={asset}
                 />
                 {amount && parseFloat(amount) > 0 && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    ≈ <span className="font-semibold text-green-600">${getUsdValue(amount, asset)}</span> USD
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    ≈ <span className="font-semibold text-green-600 dark:text-green-400">${getUsdValue(amount, asset)}</span> USD
                   </p>
                 )}
               </div>
@@ -360,11 +360,11 @@ export default function Transfer() {
 
               {/* Destination Chain - Filtered by selected asset */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">To Chain</label>
+                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">To Chain</label>
                 <select
                   value={destChain}
                   onChange={(e) => setDestChain(Number(e.target.value) as ChainId)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   {TESTNET_CHAINS
                     .filter(([id]) => getValidDestinationChains(asset).includes(Number(id)))
@@ -374,7 +374,7 @@ export default function Transfer() {
                       </option>
                     ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Chains that support {asset}
                 </p>
               </div>
@@ -398,57 +398,57 @@ export default function Transfer() {
         <div className="space-y-6">
           <Card variant="elevated">
             <Card.Header>
-              <h2 className="text-xl font-bold text-gray-900">Transfer Summary</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Transfer Summary</h2>
             </Card.Header>
             <Card.Body className="space-y-4">
               <div>
-                <p className="text-gray-600 text-sm">From</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{sourceChainName}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">From</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">{sourceChainName}</p>
               </div>
-              <div className="border-t border-gray-200 pt-4">
-                <p className="text-gray-600 text-sm">To</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{destChainName}</p>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">To</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">{destChainName}</p>
               </div>
-              <div className="border-t border-gray-200 pt-4">
-                <p className="text-gray-600 text-sm">Amount</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{amount || '0'} {asset}</p>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Amount</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">{amount || '0'} {asset}</p>
                 {amount && parseFloat(amount) > 0 && (
-                  <p className="text-sm text-green-600 mt-0.5">≈ ${getUsdValue(amount, asset)} USD</p>
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-0.5">≈ ${getUsdValue(amount, asset)} USD</p>
                 )}
               </div>
-              <div className="border-t border-gray-200 pt-4">
-                <p className="text-gray-600 text-sm">Network Fee (0.1%)</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{fee} {asset}</p>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Network Fee (0.1%)</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">{fee} {asset}</p>
                 {parseFloat(fee) > 0 && (
-                  <p className="text-sm text-gray-500 mt-0.5">≈ ${getUsdValue(fee, asset)} USD</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">≈ ${getUsdValue(fee, asset)} USD</p>
                 )}
               </div>
-              <div className="border-t border-gray-200 pt-4 bg-blue-50 -mx-4 -mb-4 px-4 py-4 rounded-b-lg">
-                <p className="text-gray-600 text-sm">Total Cost</p>
-                <p className="text-2xl font-bold text-blue-600 mt-1">{total} {asset}</p>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 bg-blue-50 dark:bg-blue-900/30 -mx-4 -mb-4 px-4 py-4 rounded-b-lg">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Cost</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{total} {asset}</p>
                 {parseFloat(total) > 0 && (
-                  <p className="text-sm text-green-700 font-medium mt-0.5">≈ ${getUsdValue(total, asset)} USD</p>
+                  <p className="text-sm text-green-700 dark:text-green-400 font-medium mt-0.5">≈ ${getUsdValue(total, asset)} USD</p>
                 )}
               </div>
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-gray-600 text-sm">Estimated Time</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">~2-5 minutes</p>
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Estimated Time</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">~2-5 minutes</p>
               </div>
             </Card.Body>
           </Card>
 
           <Card variant="outlined">
             <Card.Header>
-              <h2 className="text-xl font-bold text-gray-900">Wallet Info</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Wallet Info</h2>
             </Card.Header>
             <Card.Body className="space-y-3">
               <div>
-                <p className="text-gray-600 text-sm">Connected Wallet</p>
-                <p className="text-sm font-mono text-gray-900 mt-1 break-all">{wallet?.address ? wallet.address.slice(0, 10) : 'Not connected'}...</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Connected Wallet</p>
+                <p className="text-sm font-mono text-gray-900 dark:text-white mt-1 break-all">{wallet?.address ? wallet.address.slice(0, 10) : 'Not connected'}...</p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">Available Balance</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">{wallet?.balance || '0'} ETH</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Available Balance</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">{wallet?.balance || '0'} ETH</p>
               </div>
             </Card.Body>
           </Card>
@@ -460,22 +460,22 @@ export default function Transfer() {
         <Card variant="outlined">
           <Card.Body className="space-y-2">
             <p className="text-2xl">🔒</p>
-            <h3 className="font-semibold text-gray-900">Secure</h3>
-            <p className="text-sm text-gray-600">Non-custodial transfers with cryptographic verification</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Secure</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Non-custodial transfers with cryptographic verification</p>
           </Card.Body>
         </Card>
         <Card variant="outlined">
           <Card.Body className="space-y-2">
             <p className="text-2xl">⚡</p>
-            <h3 className="font-semibold text-gray-900">Fast</h3>
-            <p className="text-sm text-gray-600">Atomic settlement across chains in minutes</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Fast</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Atomic settlement across chains in minutes</p>
           </Card.Body>
         </Card>
         <Card variant="outlined">
           <Card.Body className="space-y-2">
             <p className="text-2xl">💰</p>
-            <h3 className="font-semibold text-gray-900">Cheap</h3>
-            <p className="text-sm text-gray-600">Minimal fees with transparent pricing</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Cheap</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Minimal fees with transparent pricing</p>
           </Card.Body>
         </Card>
       </div>

@@ -41,26 +41,26 @@ export default function Validators() {
   return (
     <div className="container px-4 sm:px-6 md:px-8 mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Validators & Staking</h1>
-        <p className="text-gray-600 mt-1">Earn rewards by staking with network validators</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Validators & Staking</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Earn rewards by staking with network validators</p>
       </div>
 
       {/* Your Stakes */}
       {stakingPositions.length > 0 && (
         <Card variant="elevated">
           <Card.Header>
-            <h2 className="text-xl font-bold text-gray-900">Your Staking Positions</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Staking Positions</h2>
           </Card.Header>
           <Card.Body>
             <div className="space-y-3">
               {stakingPositions.map((position) => (
-                <div key={position.id} className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <div key={position.id} className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="font-semibold text-gray-900">{position.validatorName}</p>
-                      <p className="text-sm text-gray-600 mt-1">{position.amount} ETH staked @ {position.apy} APY</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{position.validatorName}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{position.amount} ETH staked @ {position.apy} APY</p>
                     </div>
-                    <span className="text-lg font-bold text-green-600">+{position.claimableRewards} ETH</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">+{position.claimableRewards} ETH</span>
                   </div>
                   <Button
                     variant="outline"
@@ -81,7 +81,7 @@ export default function Validators() {
         <div className="md:col-span-2">
           <Card variant="elevated">
             <Card.Header>
-              <h2 className="text-xl font-bold text-gray-900">Available Validators</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Available Validators</h2>
             </Card.Header>
             <Card.Body>
               <div className="space-y-3">
@@ -91,32 +91,32 @@ export default function Validators() {
                     onClick={() => setSelectedValidator(validator.id)}
                     className={`p-4 border rounded-lg cursor-pointer transition-all ${
                       selectedValidator === validator.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <p className="font-semibold text-gray-900">{validator.name}</p>
-                        <p className="text-sm text-gray-600 mt-1">{validator.description}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{validator.name}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{validator.description}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-600">{validator.apy}</p>
-                        <p className="text-xs text-gray-600">APY</p>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{validator.apy}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">APY</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm pt-3 border-t border-gray-200">
+                    <div className="grid grid-cols-3 gap-4 text-sm pt-3 border-t border-gray-200 dark:border-gray-700">
                       <div>
-                        <p className="text-gray-600">Commission</p>
-                        <p className="font-semibold text-gray-900">{validator.commission}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Commission</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{validator.commission}</p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Uptime</p>
-                        <p className="font-semibold text-gray-900">{validator.uptime}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Uptime</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{validator.uptime}</p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Delegators</p>
-                        <p className="font-semibold text-gray-900">{validator.delegators}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Delegators</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{validator.delegators}</p>
                       </div>
                     </div>
                   </div>
@@ -129,14 +129,14 @@ export default function Validators() {
         {/* Staking Form */}
         <Card variant="elevated">
           <Card.Header>
-            <h2 className="text-xl font-bold text-gray-900">Stake Now</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Stake Now</h2>
           </Card.Header>
           <Card.Body className="space-y-4">
             {selectedValidator ? (
               <>
                 <div>
-                  <p className="text-gray-600 text-sm">Selected Validator</p>
-                  <p className="font-semibold text-gray-900 mt-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Selected Validator</p>
+                  <p className="font-semibold text-gray-900 dark:text-white mt-1">
                     {validators.find((v) => v.id === selectedValidator)?.name}
                   </p>
                 </div>
@@ -159,7 +159,7 @@ export default function Validators() {
                 </Button>
               </>
             ) : (
-              <p className="text-gray-600 text-center py-8">Select a validator to stake</p>
+              <p className="text-gray-600 dark:text-gray-400 text-center py-8">Select a validator to stake</p>
             )}
           </Card.Body>
         </Card>
@@ -170,22 +170,22 @@ export default function Validators() {
         <Card variant="outlined">
           <Card.Body className="space-y-3">
             <p className="text-3xl">📈</p>
-            <h3 className="font-semibold text-gray-900">Earn Rewards</h3>
-            <p className="text-sm text-gray-600">Passive income from staking your assets</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Earn Rewards</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Passive income from staking your assets</p>
           </Card.Body>
         </Card>
         <Card variant="outlined">
           <Card.Body className="space-y-3">
             <p className="text-3xl">🔒</p>
-            <h3 className="font-semibold text-gray-900">Secure Network</h3>
-            <p className="text-sm text-gray-600">Help secure the ChainSync protocol</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Secure Network</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Help secure the ChainSync protocol</p>
           </Card.Body>
         </Card>
         <Card variant="outlined">
           <Card.Body className="space-y-3">
             <p className="text-3xl">🎯</p>
-            <h3 className="font-semibold text-gray-900">Flexible</h3>
-            <p className="text-sm text-gray-600">Unstake anytime with no lock-up period</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Flexible</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Unstake anytime with no lock-up period</p>
           </Card.Body>
         </Card>
       </div>
