@@ -492,6 +492,85 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Multi-Chain Token Balances - Portfolio View */}
+      <Card variant="elevated">
+        <Card.Header>
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-900">Your Portfolio (All Networks)</h2>
+            <span className="text-sm text-gray-500">
+              {tokenBalances.length} tokens across {new Set(tokenBalances.map(t => t.chainId)).size} networks
+            </span>
+          </div>
+        </Card.Header>
+        <Card.Body>
+          {isLoadingTokens ? (
+            <div className="text-center py-8">
+              <div className="animate-pulse">
+                <p className="text-gray-600">Scanning all networks for tokens...</p>
+                <p className="text-sm text-gray-400 mt-2">Checking Ethereum, Arbitrum, Base, BSC, Polygon...</p>
+              </div>
+            </div>
+          ) : tokenBalances.length > 0 ? (
+            <>
+              {/* Token List */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {tokenBalances.map((token, index) => (
+                  <div key={`${token.chainId}-${token.symbol}-${index}`} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                          token.address === 'native'
+                            ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                            : 'bg-gradient-to-br from-gray-400 to-gray-600'
+                        }`}>
+                          {token.symbol.slice(0, 2)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900">{token.symbol}</p>
+                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                              {token.chainName}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500">{token.name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">
+                          {parseFloat(token.balance).toFixed(token.decimals === 6 ? 2 : 4)}
+                        </p>
+                        <p className="text-sm text-green-600 font-medium">
+                          {formatUSD(token.usdValue)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total Portfolio Value */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-gray-600 font-medium">Total Portfolio Value</p>
+                    <p className="text-xs text-gray-400">Across all networks</p>
+                  </div>
+                  <p className="text-2xl font-bold text-green-600">
+                    {formatUSD(tokenBalances.reduce((sum, t) => sum + t.usdValue, 0))}
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg">No tokens found</p>
+              <p className="text-sm mt-1">We scanned Ethereum, Arbitrum, Base, BSC, and Polygon</p>
+              <p className="text-sm">Tokens will appear here when you have a balance</p>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Transfers */}
@@ -636,90 +715,11 @@ export default function Dashboard() {
               <div className="text-2xl mb-2">🗳️</div>
               <p className="text-sm font-semibold text-gray-900">Vote</p>
             </a>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <button type="button" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center">
               <div className="text-2xl mb-2">📊</div>
               <p className="text-sm font-semibold text-gray-900">Analytics</p>
             </button>
           </div>
-        </Card.Body>
-      </Card>
-
-      {/* Multi-Chain Token Balances */}
-      <Card variant="elevated">
-        <Card.Header>
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Your Portfolio (All Networks)</h2>
-            <span className="text-sm text-gray-500">
-              {tokenBalances.length} tokens across {new Set(tokenBalances.map(t => t.chainId)).size} networks
-            </span>
-          </div>
-        </Card.Header>
-        <Card.Body>
-          {isLoadingTokens ? (
-            <div className="text-center py-8">
-              <div className="animate-pulse">
-                <p className="text-gray-600">Scanning all networks for tokens...</p>
-                <p className="text-sm text-gray-400 mt-2">Checking Ethereum, Arbitrum, Base, BSC, Polygon...</p>
-              </div>
-            </div>
-          ) : tokenBalances.length > 0 ? (
-            <>
-              {/* Token List */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {tokenBalances.map((token, index) => (
-                  <div key={`${token.chainId}-${token.symbol}-${index}`} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                          token.address === 'native'
-                            ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
-                            : 'bg-gradient-to-br from-gray-400 to-gray-600'
-                        }`}>
-                          {token.symbol.slice(0, 2)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-gray-900">{token.symbol}</p>
-                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                              {token.chainName}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-500">{token.name}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">
-                          {parseFloat(token.balance).toFixed(token.decimals === 6 ? 2 : 4)}
-                        </p>
-                        <p className="text-sm text-green-600 font-medium">
-                          {formatUSD(token.usdValue)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Total Portfolio Value */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-gray-600 font-medium">Total Portfolio Value</p>
-                    <p className="text-xs text-gray-400">Across all networks</p>
-                  </div>
-                  <p className="text-2xl font-bold text-green-600">
-                    {formatUSD(tokenBalances.reduce((sum, t) => sum + t.usdValue, 0))}
-                  </p>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p className="text-lg">No tokens found</p>
-              <p className="text-sm mt-1">We scanned Ethereum, Arbitrum, Base, BSC, and Polygon</p>
-              <p className="text-sm">Tokens will appear here when you have a balance</p>
-            </div>
-          )}
         </Card.Body>
       </Card>
 
