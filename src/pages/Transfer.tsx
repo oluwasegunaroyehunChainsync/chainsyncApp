@@ -21,6 +21,30 @@ const TESTNET_CHAINS = Object.entries(SUPPORTED_CHAINS).filter(
   ([id]) => CONTRACT_ADDRESSES[Number(id)]
 );
 
+// Chain-specific token availability mapping
+// Each chain ID maps to an array of token symbols available on that chain
+const CHAIN_TOKENS: Record<number, string[]> = {
+  // Ethereum Mainnet - All tokens available
+  1: ['CST', 'WETH', 'USDC', 'USDT', 'DAI', 'WBTC', 'LINK', 'UNI', 'AAVE'],
+  // Base Mainnet - Limited tokens (USDC is native, no USDT)
+  8453: ['CST', 'USDC'],
+  // BSC Mainnet - Binance-Peg tokens
+  56: ['CST', 'USDC', 'USDT'],
+  // Polygon - Not yet deployed but ready
+  137: ['CST', 'USDC', 'USDT', 'DAI', 'WETH'],
+  // Arbitrum - Not yet deployed but ready
+  42161: ['CST', 'USDC', 'USDT', 'DAI', 'WETH'],
+  // Testnets - CST only for testing
+  11155111: ['CST'], // Sepolia
+  421614: ['CST'],   // Arbitrum Sepolia
+  31337: ['CST'],    // Hardhat local
+};
+
+// Get tokens available on a specific chain
+const getChainTokens = (chainId: number): string[] => {
+  return CHAIN_TOKENS[chainId] || ['CST']; // Default to CST if chain not configured
+};
+
 // CoinGecko IDs for supported assets
 const ASSET_COINGECKO_IDS: Record<string, string> = {
   CST: 'ethereum', // CST tracks ETH price for now
@@ -90,6 +114,15 @@ export default function Transfer() {
   useEffect(() => {
     setCurrentChainId(Number(sourceChain));
   }, [sourceChain]);
+
+  // Reset asset selection when chain changes if current asset is not available
+  useEffect(() => {
+    const availableTokens = getChainTokens(Number(sourceChain));
+    if (!availableTokens.includes(asset)) {
+      // Set to first available token on the new chain
+      setAsset(availableTokens[0] || 'CST');
+    }
+  }, [sourceChain, asset]);
 
   // Get USD value for current amount and asset
   const getUsdValue = (tokenAmount: string, tokenSymbol: string): string => {
@@ -250,7 +283,7 @@ export default function Transfer() {
                 </select>
               </div>
 
-              {/* Asset Selection */}
+              {/* Asset Selection - Filtered by selected chain */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">Asset</label>
                 <select
@@ -258,12 +291,17 @@ export default function Transfer() {
                   onChange={(e) => setAsset(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {Object.entries(SUPPORTED_ASSETS).map(([symbol, assetData]) => (
-                    <option key={symbol} value={symbol}>
-                      {symbol} - {assetData.name}
-                    </option>
-                  ))}
+                  {Object.entries(SUPPORTED_ASSETS)
+                    .filter(([symbol]) => getChainTokens(Number(sourceChain)).includes(symbol))
+                    .map(([symbol, assetData]) => (
+                      <option key={symbol} value={symbol}>
+                        {symbol} - {assetData.name}
+                      </option>
+                    ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Showing tokens available on {SUPPORTED_CHAINS[sourceChain as keyof typeof SUPPORTED_CHAINS]?.name || 'selected chain'}
+                </p>
               </div>
 
               {/* Amount */}
