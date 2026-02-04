@@ -2,9 +2,51 @@ import { useEffect, useState } from 'react';
 import { useWalletStore, useTransferStore, useGovernanceStore } from '@/stores';
 import { formatAddress } from '@/utils';
 import { getReadOnlyProvider, getUserValidatorInfo } from '@/utils/web3';
+import { SUPPORTED_ASSETS } from '@/constants';
 import { ethers } from 'ethers';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+
+// ERC20 ABI for balanceOf
+const ERC20_ABI = [
+  'function balanceOf(address owner) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+  'function symbol() view returns (string)',
+];
+
+// Token balance interface
+interface TokenBalance {
+  symbol: string;
+  name: string;
+  balance: string;
+  decimals: number;
+  address: string;
+  usdValue: number;
+}
+
+// Chain-specific token addresses (same as Transfer.tsx)
+const CHAIN_TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
+  // Ethereum Mainnet
+  1: {
+    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+    WBTC: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    LINK: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
+    UNI: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+    AAVE: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+  },
+  // Base Mainnet
+  8453: {
+    USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  },
+  // BSC Mainnet
+  56: {
+    USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+    USDT: '0x55d398326f99059fF775485246999027B3197955',
+  },
+};
 
 // Chain native token symbols and CoinGecko IDs
 const CHAIN_TOKEN_CONFIG: Record<number, { symbol: string; name: string; coingeckoId: string }> = {
@@ -63,6 +105,8 @@ export default function Dashboard() {
   const [isLoadingStaking, setIsLoadingStaking] = useState(false);
   const [tokenPrices, setTokenPrices] = useState<Record<string, number>>(DEFAULT_PRICES);
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
+  const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
+  const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
   // Track detected chainId from wallet
   const [detectedChainId, setDetectedChainId] = useState<number>(1);
@@ -170,6 +214,70 @@ export default function Dashboard() {
     const interval = setInterval(fetchStakingData, 30000);
     return () => clearInterval(interval);
   }, [wallet?.address, detectedChainId]);
+
+  // Fetch ERC20 token balances for the connected wallet
+  useEffect(() => {
+    const fetchTokenBalances = async () => {
+      if (!wallet?.address) return;
+
+      setIsLoadingTokens(true);
+      try {
+        const chainId = getEffectiveChainId();
+        const provider = getReadOnlyProvider(chainId);
+        const chainTokens = CHAIN_TOKEN_ADDRESSES[chainId] || {};
+
+        const balances: TokenBalance[] = [];
+
+        // Fetch balance for each token on this chain
+        for (const [symbol, address] of Object.entries(chainTokens)) {
+          try {
+            const contract = new ethers.Contract(address, ERC20_ABI, provider);
+            const balance = await contract.balanceOf(wallet.address);
+            const assetInfo = SUPPORTED_ASSETS[symbol as keyof typeof SUPPORTED_ASSETS];
+            const decimals = assetInfo?.decimals || 18;
+            const formattedBalance = ethers.formatUnits(balance, decimals);
+
+            // Only add tokens with non-zero balance
+            if (parseFloat(formattedBalance) > 0) {
+              // Get USD price from CoinGecko mapping
+              const coingeckoId = symbol === 'WETH' ? 'ethereum' :
+                                  symbol === 'USDC' || symbol === 'USDT' || symbol === 'DAI' ? 'usd-coin' :
+                                  symbol === 'WBTC' ? 'bitcoin' :
+                                  symbol === 'LINK' ? 'chainlink' :
+                                  symbol === 'UNI' ? 'uniswap' :
+                                  symbol === 'AAVE' ? 'aave' : 'ethereum';
+              const price = tokenPrices[coingeckoId] || 1;
+
+              balances.push({
+                symbol,
+                name: assetInfo?.name || symbol,
+                balance: formattedBalance,
+                decimals,
+                address,
+                usdValue: parseFloat(formattedBalance) * price,
+              });
+            }
+          } catch (err) {
+            console.error(`Failed to fetch balance for ${symbol}:`, err);
+          }
+        }
+
+        // Sort by USD value (highest first)
+        balances.sort((a, b) => b.usdValue - a.usdValue);
+        setTokenBalances(balances);
+      } catch (error) {
+        console.error('Failed to fetch token balances:', error);
+        setTokenBalances([]);
+      } finally {
+        setIsLoadingTokens(false);
+      }
+    };
+
+    fetchTokenBalances();
+    // Refresh token balances every 30 seconds
+    const interval = setInterval(fetchTokenBalances, 30000);
+    return () => clearInterval(interval);
+  }, [wallet?.address, detectedChainId, tokenPrices]);
 
   // Fetch real-time token prices from CoinGecko
   useEffect(() => {
@@ -491,6 +599,101 @@ export default function Dashboard() {
         </Card.Body>
       </Card>
 
+      {/* Token Balances */}
+      <Card variant="elevated">
+        <Card.Header>
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-900">Your Token Balances</h2>
+            <span className="text-sm text-gray-500">
+              {CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.name || 'Network'}
+            </span>
+          </div>
+        </Card.Header>
+        <Card.Body>
+          {isLoadingTokens ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Loading token balances...</p>
+            </div>
+          ) : (
+            <>
+              {/* Native Token Balance */}
+              <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                      {CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.symbol?.charAt(0) || 'E'}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {CHAIN_TOKEN_CONFIG[getEffectiveChainId()]?.symbol || 'ETH'}
+                      </p>
+                      <p className="text-sm text-gray-500">Native Token</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-gray-900">
+                      {isLoadingBalance ? 'Loading...' : parseFloat(realBalance).toFixed(4)}
+                    </p>
+                    <p className="text-sm text-green-600 font-medium">
+                      {isLoadingBalance || isLoadingPrices ? '' : formatUSD(parseFloat(realBalance) * getTokenPrice(getEffectiveChainId()))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ERC20 Token Balances */}
+              {tokenBalances.length > 0 ? (
+                <div className="space-y-3">
+                  {tokenBalances.map((token) => (
+                    <div key={token.symbol} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {token.symbol.slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{token.symbol}</p>
+                            <p className="text-sm text-gray-500">{token.name}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-900">
+                            {parseFloat(token.balance).toFixed(token.decimals === 6 ? 2 : 4)}
+                          </p>
+                          <p className="text-sm text-green-600 font-medium">
+                            {formatUSD(token.usdValue)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <p>No ERC20 tokens found on this network</p>
+                  <p className="text-sm mt-1">Tokens will appear here when you have a balance</p>
+                </div>
+              )}
+
+              {/* Total Portfolio Value */}
+              {(parseFloat(realBalance) > 0 || tokenBalances.length > 0) && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-600 font-medium">Total Portfolio Value</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {formatUSD(
+                        (parseFloat(realBalance) * getTokenPrice(getEffectiveChainId())) +
+                        tokenBalances.reduce((sum, t) => sum + t.usdValue, 0)
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </Card.Body>
+      </Card>
+
       {/* Wallet Info */}
       <Card variant="outlined">
         <Card.Header>
@@ -517,7 +720,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div>
-            <p className="text-gray-600 text-sm">Balance</p>
+            <p className="text-gray-600 text-sm">Native Balance</p>
             <p className="text-sm font-semibold text-gray-900 mt-1">
               {isLoadingBalance || isLoadingPrices ? 'Loading...' : formatUSD(parseFloat(realBalance) * getTokenPrice(getEffectiveChainId()))}
             </p>
