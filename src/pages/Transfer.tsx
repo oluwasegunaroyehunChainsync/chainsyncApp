@@ -45,6 +45,20 @@ const getChainTokens = (chainId: number): string[] => {
   return CHAIN_TOKENS[chainId] || ['CST']; // Default to CST if chain not configured
 };
 
+// Get valid destination chains for a specific token
+// Returns chain IDs that support the given token
+const getValidDestinationChains = (tokenSymbol: string): number[] => {
+  const validChains: number[] = [];
+  for (const [chainIdStr, tokens] of Object.entries(CHAIN_TOKENS)) {
+    const chainId = Number(chainIdStr);
+    // Only include chains that have deployed contracts
+    if (CONTRACT_ADDRESSES[chainId] && tokens.includes(tokenSymbol)) {
+      validChains.push(chainId);
+    }
+  }
+  return validChains;
+};
+
 // CoinGecko IDs for supported assets
 const ASSET_COINGECKO_IDS: Record<string, string> = {
   CST: 'ethereum', // CST tracks ETH price for now
@@ -123,6 +137,19 @@ export default function Transfer() {
       setAsset(availableTokens[0] || 'CST');
     }
   }, [sourceChain, asset]);
+
+  // Reset destination chain when asset changes if destination doesn't support the asset
+  useEffect(() => {
+    const validDestChains = getValidDestinationChains(asset);
+    if (!validDestChains.includes(Number(destChain))) {
+      // Set to source chain (same-chain transfer) or first valid destination
+      if (validDestChains.includes(Number(sourceChain))) {
+        setDestChain(sourceChain);
+      } else if (validDestChains.length > 0) {
+        setDestChain(validDestChains[0] as ChainId);
+      }
+    }
+  }, [asset, sourceChain, destChain]);
 
   // Get USD value for current amount and asset
   const getUsdValue = (tokenAmount: string, tokenSymbol: string): string => {
@@ -331,7 +358,7 @@ export default function Transfer() {
                 helperText="The address that will receive the assets on the destination chain"
               />
 
-              {/* Destination Chain */}
+              {/* Destination Chain - Filtered by selected asset */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">To Chain</label>
                 <select
@@ -339,12 +366,17 @@ export default function Transfer() {
                   onChange={(e) => setDestChain(Number(e.target.value) as ChainId)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {TESTNET_CHAINS.map(([id, chain]) => (
-                    <option key={id} value={id}>
-                      {chain.name}
-                    </option>
-                  ))}
+                  {TESTNET_CHAINS
+                    .filter(([id]) => getValidDestinationChains(asset).includes(Number(id)))
+                    .map(([id, chain]) => (
+                      <option key={id} value={id}>
+                        {chain.name}
+                      </option>
+                    ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Chains that support {asset}
+                </p>
               </div>
 
               <Button
