@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useUIStore } from '@/stores/uiStore';
 
@@ -23,16 +23,16 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
 
   const AsideContent = (
     <aside
-      className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-full`}
+      className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col h-full`}
     >
-      <div className="p-6 flex items-center justify-between border-b border-gray-200">
-        {!isCollapsed && <h2 className="text-lg font-bold text-gray-900">Menu</h2>}
+      <div className="p-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+        {!isCollapsed && <h2 className="text-lg font-bold text-gray-900 dark:text-white">Menu</h2>}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -40,10 +40,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
           {close && (
             <button
               onClick={close}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors md:hidden"
               aria-label="Close menu"
             >
-              <svg className="w-5 h-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 8.586l4.95-4.95 1.414 1.414L11.414 10l4.95 4.95-1.414 1.414L10 11.414l-4.95 4.95-1.414-1.414L8.586 10 3.636 5.05l1.414-1.414L10 8.586z" clipRule="evenodd" />
               </svg>
             </button>
@@ -59,7 +59,9 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                isActive ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700 hover:bg-gray-50'
+                isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
               onClick={() => close && close()}
             >
@@ -70,8 +72,8 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
         })}
       </nav>
 
-      <div className="p-6 border-t border-gray-200">
-        <div className={`${isCollapsed ? 'hidden' : 'block'} text-xs text-gray-500 text-center`}>
+      <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+        <div className={`${isCollapsed ? 'hidden' : 'block'} text-xs text-gray-500 dark:text-gray-400 text-center`}>
           ChainSync v1.0
         </div>
       </div>
@@ -96,7 +98,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
 
         {/* Slide-in panel */}
         <div className={`absolute left-0 top-0 h-full ${open ? 'translate-x-0' : '-translate-x-full'} transform transition-transform duration-300`}>
-          <div className="h-full w-[min(85vw,20rem)] md:w-64 bg-white shadow-xl">
+          <div className="h-full w-[min(85vw,20rem)] md:w-64 bg-white dark:bg-gray-800 shadow-xl">
             {AsideContent}
           </div>
         </div>

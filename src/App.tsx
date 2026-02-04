@@ -4,9 +4,9 @@
  * Decentralized architecture - no traditional authentication
  */
 
-import React from 'react';
+import { useEffect } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
-import { useWalletStore } from '@/stores';
+import { useWalletStore, useSettingsStore } from '@/stores';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import NotificationCenter from '@/components/NotificationCenter';
 import Header from '@/components/Header';
@@ -21,12 +21,38 @@ import NotFound from '@/pages/NotFound';
 import { Web3AuthProvider } from "@/contexts/Web3AuthContext";
 
 /**
+ * Protected Page Layout
+ * Shared layout for all authenticated pages with dark mode support
+ */
+function ProtectedLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+            <Sidebar />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <Header />
+                <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {children}
+                    </div>
+                </main>
+            </div>
+        </div>
+    );
+}
+
+/**
  * Main Router Component
  * Handles all routing and page transitions
  */
 function Router() {
     const { wallet } = useWalletStore();
+    const { theme, applyTheme } = useSettingsStore();
     const [location] = useLocation();
+
+    // Apply theme on mount and when theme changes
+    useEffect(() => {
+        applyTheme();
+    }, [theme, applyTheme]);
 
     // Check if we're on a protected page
     const isProtectedPage = ['/dashboard', '/transfer', '/validators', '/governance', '/settings'].includes(location);
@@ -40,17 +66,9 @@ function Router() {
             {/* Protected Routes - Dashboard */}
             <Route path="/dashboard">
                 {showLayout ? (
-                    <div className="flex h-screen bg-gray-50">
-                        <Sidebar />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header />
-                            <main className="flex-1 overflow-auto">
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                                    <Dashboard />
-                                </div>
-                            </main>
-                        </div>
-                    </div>
+                    <ProtectedLayout>
+                        <Dashboard />
+                    </ProtectedLayout>
                 ) : (
                     <Landing />
                 )}
@@ -59,17 +77,9 @@ function Router() {
             {/* Protected Routes - Transfer */}
             <Route path="/transfer">
                 {showLayout ? (
-                    <div className="flex h-screen bg-gray-50">
-                        <Sidebar />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header />
-                            <main className="flex-1 overflow-auto">
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                                    <Transfer />
-                                </div>
-                            </main>
-                        </div>
-                    </div>
+                    <ProtectedLayout>
+                        <Transfer />
+                    </ProtectedLayout>
                 ) : (
                     <Landing />
                 )}
@@ -78,17 +88,9 @@ function Router() {
             {/* Protected Routes - Validators */}
             <Route path="/validators">
                 {showLayout ? (
-                    <div className="flex h-screen bg-gray-50">
-                        <Sidebar />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header />
-                            <main className="flex-1 overflow-auto">
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                                    <Validators />
-                                </div>
-                            </main>
-                        </div>
-                    </div>
+                    <ProtectedLayout>
+                        <Validators />
+                    </ProtectedLayout>
                 ) : (
                     <Landing />
                 )}
@@ -97,17 +99,9 @@ function Router() {
             {/* Protected Routes - Governance */}
             <Route path="/governance">
                 {showLayout ? (
-                    <div className="flex h-screen bg-gray-50">
-                        <Sidebar />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header />
-                            <main className="flex-1 overflow-auto">
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                                    <Governance />
-                                </div>
-                            </main>
-                        </div>
-                    </div>
+                    <ProtectedLayout>
+                        <Governance />
+                    </ProtectedLayout>
                 ) : (
                     <Landing />
                 )}
@@ -116,17 +110,9 @@ function Router() {
             {/* Protected Routes - Settings */}
             <Route path="/settings">
                 {showLayout ? (
-                    <div className="flex h-screen bg-gray-50">
-                        <Sidebar />
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <Header />
-                            <main className="flex-1 overflow-auto">
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                                    <Settings />
-                                </div>
-                            </main>
-                        </div>
-                    </div>
+                    <ProtectedLayout>
+                        <Settings />
+                    </ProtectedLayout>
                 ) : (
                     <Landing />
                 )}
@@ -148,7 +134,7 @@ function App() {
     return (
         <Web3AuthProvider config={{ apiUrl }}>
         <ErrorBoundary>
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
                 {/* Global Notification Center */}
                 <NotificationCenter />
 

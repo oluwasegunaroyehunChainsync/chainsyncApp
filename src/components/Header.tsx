@@ -51,7 +51,7 @@ export default function Header({ onOpenMobileMenu }: { onOpenMobileMenu?: () => 
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm relative z-60">
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm relative z-60 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-8">
@@ -64,10 +64,10 @@ export default function Header({ onOpenMobileMenu }: { onOpenMobileMenu?: () => 
                   const setOpen = useUIStore.getState().setMobileSidebarOpen;
                   setOpen(true);
                 }}
-                className="p-2 rounded-md hover:bg-gray-100"
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
                 aria-label="Open menu"
               >
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
@@ -77,41 +77,41 @@ export default function Header({ onOpenMobileMenu }: { onOpenMobileMenu?: () => 
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">CS</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">ChainSync</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">ChainSync</span>
             </div>
           </div>
 
           <div className="flex items-center gap-6">
             {wallet?.isConnected && (
-              <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium text-gray-700">{formatAddress(wallet.address)}</span>
-                <span className="text-sm text-gray-500">{formatCurrency(wallet.balance)} ETH</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{formatAddress(wallet.address)}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(wallet.balance)} ETH</span>
               </div>
             )}
 
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </div>
-                <span className="text-sm font-medium text-gray-700">{user?.firstName}</span>
-                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.firstName}</span>
+                <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                  <a href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                  <a href="/settings" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
                     Settings
                   </a>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     Logout
                   </button>

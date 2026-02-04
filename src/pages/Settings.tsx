@@ -1,9 +1,10 @@
 /**
  * Settings Page
  * Comprehensive user settings for ChainSync platform
+ * All settings are persisted and applied globally across the app
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -20,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { SUPPORTED_CHAINS } from '@/constants';
 import { useTransferStore } from '@/stores/transferStore';
+import { useSettingsStore, type SettingsState } from '@/stores/settingsStore';
 import {
   Settings as SettingsIcon,
   Monitor,
@@ -32,89 +34,57 @@ import {
   Moon,
   Download,
   Trash2,
-  Save,
   RefreshCw,
+  Check,
 } from 'lucide-react';
 
-// Settings storage key
-const SETTINGS_KEY = 'chainsync_settings';
-
-// Default settings
-const defaultSettings = {
-  // Display
-  currency: 'USD',
-  theme: 'light',
-
-  // Transfer Defaults
-  slippageTolerance: '0.5',
-  gasSpeed: 'standard',
-  autoFillRecipient: false,
-  defaultRecipient: '',
-
-  // Notifications
-  browserNotifications: true,
-  emailNotifications: false,
-  notifyOnComplete: true,
-  notifyOnFailed: true,
-
-  // Network
-  defaultChain: 1,
-  customRpcEnabled: false,
-  customRpcUrl: '',
-
-  // Security
-  sessionTimeout: 30,
-  confirmationThreshold: '1000',
-  requireConfirmation: true,
-};
-
-type Settings = typeof defaultSettings;
+// Settings keys that can be updated
+type SettingsKey = keyof Omit<SettingsState, 'updateSetting' | 'resetSettings' | 'applyTheme'>;
 
 export default function Settings() {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const { transfers } = useTransferStore();
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
 
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(SETTINGS_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSettings({ ...defaultSettings, ...parsed });
-      } catch (e) {
-        console.error('Failed to parse settings:', e);
-      }
-    }
-  }, []);
+  // Get all settings from global store
+  const {
+    currency,
+    theme,
+    slippageTolerance,
+    gasSpeed,
+    autoFillRecipient,
+    defaultRecipient,
+    browserNotifications,
+    emailNotifications,
+    notifyOnComplete,
+    notifyOnFailed,
+    defaultChain,
+    customRpcEnabled,
+    customRpcUrl,
+    sessionTimeout,
+    confirmationThreshold,
+    requireConfirmation,
+    updateSetting,
+    resetSettings,
+  } = useSettingsStore();
 
-  // Save settings to localStorage
-  const saveSettings = () => {
-    setIsSaving(true);
-    try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (e) {
-      console.error('Failed to save settings:', e);
-      setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
-    }
+  // Show saved feedback
+  const showSaved = () => {
+    setSaveStatus('saved');
+    setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
-  // Update a single setting
-  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+  // Handle setting change with feedback
+  const handleChange = (key: SettingsKey, value: SettingsState[SettingsKey]) => {
+    updateSetting(key, value);
+    showSaved();
   };
 
   // Reset to defaults
-  const resetToDefaults = () => {
-    setSettings(defaultSettings);
-    localStorage.removeItem(SETTINGS_KEY);
-    setSaveStatus('saved');
-    setTimeout(() => setSaveStatus('idle'), 2000);
+  const handleReset = () => {
+    if (window.confirm('Reset all settings to defaults?')) {
+      resetSettings();
+      showSaved();
+    }
   };
 
   // Clear transfer history
@@ -153,25 +123,41 @@ export default function Settings() {
     URL.revokeObjectURL(url);
   };
 
+  // Request browser notification permission
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        handleChange('browserNotifications', true);
+        new Notification('ChainSync Notifications Enabled', {
+          body: 'You will now receive notifications for transfer updates.',
+          icon: '/favicon.ico',
+        });
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <SettingsIcon className="h-6 w-6" />
             Settings
           </h1>
-          <p className="text-gray-500 mt-1">Manage your ChainSync preferences</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your ChainSync preferences</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={resetToDefaults}>
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1 text-green-600 text-sm">
+              <Check className="h-4 w-4" />
+              Saved
+            </span>
+          )}
+          <Button variant="outline" onClick={handleReset}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset
-          </Button>
-          <Button onClick={saveSettings} disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save Changes'}
           </Button>
         </div>
       </div>
@@ -221,21 +207,21 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="currency" className="text-base">Display Currency</Label>
-                  <p className="text-sm text-gray-500">Choose your preferred currency for value display</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Choose your preferred currency for value display</p>
                 </div>
                 <Select
-                  value={settings.currency}
-                  onValueChange={(value) => updateSetting('currency', value)}
+                  value={currency}
+                  onValueChange={(value) => handleChange('currency', value as any)}
                 >
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (&#8364;)</SelectItem>
-                    <SelectItem value="GBP">GBP (&#163;)</SelectItem>
-                    <SelectItem value="ETH">ETH</SelectItem>
-                    <SelectItem value="BTC">BTC</SelectItem>
+                    <SelectItem value="EUR">EUR (&euro;)</SelectItem>
+                    <SelectItem value="GBP">GBP (&pound;)</SelectItem>
+                    <SelectItem value="ETH">ETH (&Xi;)</SelectItem>
+                    <SelectItem value="BTC">BTC (&bitcoin;)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -246,26 +232,36 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Theme</Label>
-                  <p className="text-sm text-gray-500">Select your preferred color theme</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Select your preferred color theme</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant={settings.theme === 'light' ? 'default' : 'outline'}
+                    variant={theme === 'light' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => updateSetting('theme', 'light')}
+                    onClick={() => handleChange('theme', 'light')}
                   >
                     <Sun className="h-4 w-4 mr-1" />
                     Light
                   </Button>
                   <Button
-                    variant={settings.theme === 'dark' ? 'default' : 'outline'}
+                    variant={theme === 'dark' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => updateSetting('theme', 'dark')}
+                    onClick={() => handleChange('theme', 'dark')}
                   >
                     <Moon className="h-4 w-4 mr-1" />
                     Dark
                   </Button>
                 </div>
+              </div>
+
+              {/* Current Theme Preview */}
+              <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Current theme: <strong className="text-gray-900 dark:text-white">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Theme changes are applied immediately across the entire app.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -288,11 +284,11 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="slippage" className="text-base">Slippage Tolerance</Label>
-                  <p className="text-sm text-gray-500">Maximum acceptable price change during transfer</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Maximum acceptable price change during transfer</p>
                 </div>
                 <Select
-                  value={settings.slippageTolerance}
-                  onValueChange={(value) => updateSetting('slippageTolerance', value)}
+                  value={slippageTolerance}
+                  onValueChange={(value) => handleChange('slippageTolerance', value)}
                 >
                   <SelectTrigger className="w-32">
                     <SelectValue />
@@ -313,11 +309,11 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Default Gas Speed</Label>
-                  <p className="text-sm text-gray-500">Preferred transaction speed (affects fees)</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Preferred transaction speed (affects fees)</p>
                 </div>
                 <Select
-                  value={settings.gasSpeed}
-                  onValueChange={(value) => updateSetting('gasSpeed', value)}
+                  value={gasSpeed}
+                  onValueChange={(value) => handleChange('gasSpeed', value as any)}
                 >
                   <SelectTrigger className="w-32">
                     <SelectValue />
@@ -336,22 +332,22 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Auto-fill Recipient</Label>
-                  <p className="text-sm text-gray-500">Automatically use a default recipient address</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Automatically use a default recipient address</p>
                 </div>
                 <Switch
-                  checked={settings.autoFillRecipient}
-                  onCheckedChange={(checked) => updateSetting('autoFillRecipient', checked)}
+                  checked={autoFillRecipient}
+                  onCheckedChange={(checked) => handleChange('autoFillRecipient', checked)}
                 />
               </div>
 
-              {settings.autoFillRecipient && (
-                <div className="ml-4 pl-4 border-l-2 border-gray-200">
+              {autoFillRecipient && (
+                <div className="ml-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
                   <Label htmlFor="defaultRecipient">Default Recipient Address</Label>
                   <Input
                     id="defaultRecipient"
                     placeholder="0x..."
-                    value={settings.defaultRecipient}
-                    onChange={(e) => updateSetting('defaultRecipient', e.target.value)}
+                    value={defaultRecipient}
+                    onChange={(e) => handleChange('defaultRecipient', e.target.value)}
                     className="mt-2"
                   />
                 </div>
@@ -377,12 +373,25 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Browser Notifications</Label>
-                  <p className="text-sm text-gray-500">Receive desktop notifications for important events</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Receive desktop notifications for important events</p>
                 </div>
-                <Switch
-                  checked={settings.browserNotifications}
-                  onCheckedChange={(checked) => updateSetting('browserNotifications', checked)}
-                />
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={browserNotifications}
+                    onCheckedChange={(checked) => {
+                      if (checked && 'Notification' in window && Notification.permission !== 'granted') {
+                        requestNotificationPermission();
+                      } else {
+                        handleChange('browserNotifications', checked);
+                      }
+                    }}
+                  />
+                  {browserNotifications && 'Notification' in window && Notification.permission !== 'granted' && (
+                    <Button size="sm" variant="outline" onClick={requestNotificationPermission}>
+                      Enable
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <Separator />
@@ -391,11 +400,12 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Email Notifications</Label>
-                  <p className="text-sm text-gray-500">Receive email updates for transfers (requires email verification)</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Receive email updates for transfers (coming soon)</p>
                 </div>
                 <Switch
-                  checked={settings.emailNotifications}
-                  onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
+                  checked={emailNotifications}
+                  onCheckedChange={(checked) => handleChange('emailNotifications', checked)}
+                  disabled
                 />
               </div>
 
@@ -405,11 +415,11 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Transfer Completion Alerts</Label>
-                  <p className="text-sm text-gray-500">Get notified when transfers complete successfully</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when transfers complete successfully</p>
                 </div>
                 <Switch
-                  checked={settings.notifyOnComplete}
-                  onCheckedChange={(checked) => updateSetting('notifyOnComplete', checked)}
+                  checked={notifyOnComplete}
+                  onCheckedChange={(checked) => handleChange('notifyOnComplete', checked)}
                 />
               </div>
 
@@ -419,11 +429,11 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Transfer Failure Alerts</Label>
-                  <p className="text-sm text-gray-500">Get notified when transfers fail</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when transfers fail</p>
                 </div>
                 <Switch
-                  checked={settings.notifyOnFailed}
-                  onCheckedChange={(checked) => updateSetting('notifyOnFailed', checked)}
+                  checked={notifyOnFailed}
+                  onCheckedChange={(checked) => handleChange('notifyOnFailed', checked)}
                 />
               </div>
             </CardContent>
@@ -447,11 +457,11 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Default Network</Label>
-                  <p className="text-sm text-gray-500">Preferred network for new transfers</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Preferred network for new transfers</p>
                 </div>
                 <Select
-                  value={String(settings.defaultChain)}
-                  onValueChange={(value) => updateSetting('defaultChain', Number(value))}
+                  value={String(defaultChain)}
+                  onValueChange={(value) => handleChange('defaultChain', Number(value))}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue />
@@ -472,22 +482,22 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Use Custom RPC</Label>
-                  <p className="text-sm text-gray-500">Override default RPC endpoints with your own</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Override default RPC endpoints with your own</p>
                 </div>
                 <Switch
-                  checked={settings.customRpcEnabled}
-                  onCheckedChange={(checked) => updateSetting('customRpcEnabled', checked)}
+                  checked={customRpcEnabled}
+                  onCheckedChange={(checked) => handleChange('customRpcEnabled', checked)}
                 />
               </div>
 
-              {settings.customRpcEnabled && (
-                <div className="ml-4 pl-4 border-l-2 border-gray-200">
+              {customRpcEnabled && (
+                <div className="ml-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
                   <Label htmlFor="customRpc">Custom RPC URL</Label>
                   <Input
                     id="customRpc"
                     placeholder="https://..."
-                    value={settings.customRpcUrl}
-                    onChange={(e) => updateSetting('customRpcUrl', e.target.value)}
+                    value={customRpcUrl}
+                    onChange={(e) => handleChange('customRpcUrl', e.target.value)}
                     className="mt-2"
                   />
                   <p className="text-xs text-gray-400 mt-1">
@@ -516,11 +526,11 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Session Timeout</Label>
-                  <p className="text-sm text-gray-500">Auto-disconnect wallet after inactivity (minutes)</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Auto-disconnect wallet after inactivity (minutes)</p>
                 </div>
                 <Select
-                  value={String(settings.sessionTimeout)}
-                  onValueChange={(value) => updateSetting('sessionTimeout', Number(value))}
+                  value={String(sessionTimeout)}
+                  onValueChange={(value) => handleChange('sessionTimeout', Number(value))}
                 >
                   <SelectTrigger className="w-32">
                     <SelectValue />
@@ -541,25 +551,25 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Require Transfer Confirmation</Label>
-                  <p className="text-sm text-gray-500">Show confirmation dialog for large transfers</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Show confirmation dialog for large transfers</p>
                 </div>
                 <Switch
-                  checked={settings.requireConfirmation}
-                  onCheckedChange={(checked) => updateSetting('requireConfirmation', checked)}
+                  checked={requireConfirmation}
+                  onCheckedChange={(checked) => handleChange('requireConfirmation', checked)}
                 />
               </div>
 
-              {settings.requireConfirmation && (
+              {requireConfirmation && (
                 <>
                   <Separator />
                   <div className="flex items-center justify-between">
                     <div>
                       <Label className="text-base">Confirmation Threshold</Label>
-                      <p className="text-sm text-gray-500">Require confirmation for transfers above this USD value</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Require confirmation for transfers above this USD value</p>
                     </div>
                     <Select
-                      value={settings.confirmationThreshold}
-                      onValueChange={(value) => updateSetting('confirmationThreshold', value)}
+                      value={confirmationThreshold}
+                      onValueChange={(value) => handleChange('confirmationThreshold', value)}
                     >
                       <SelectTrigger className="w-32">
                         <SelectValue />
@@ -596,7 +606,7 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base">Export Transfer History</Label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Download your transfer history as a CSV file ({transfers.length} transfers)
                   </p>
                 </div>
@@ -612,7 +622,7 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-base text-red-600">Clear Transfer History</Label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Remove all locally stored transfer data. This cannot be undone.
                   </p>
                 </div>
@@ -625,11 +635,13 @@ export default function Settings() {
               <Separator />
 
               {/* Storage Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Storage Information</h4>
-                <div className="text-sm text-gray-600 space-y-1">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Storage Information</h4>
+                <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                   <p>Transfer records: {transfers.length}</p>
-                  <p>Settings: {localStorage.getItem(SETTINGS_KEY) ? 'Saved' : 'Default'}</p>
+                  <p>Settings: Saved to browser</p>
+                  <p>Current currency: {currency}</p>
+                  <p>Current theme: {theme}</p>
                   <p className="text-xs text-gray-400 mt-2">
                     Data is stored locally in your browser. Connect your wallet to sync with the blockchain.
                   </p>

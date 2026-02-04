@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useWalletStore, useTransferStore, useGovernanceStore } from '@/stores';
+import { useWalletStore, useTransferStore, useGovernanceStore, useSettingsStore, formatCurrency, CURRENCY_CONFIG } from '@/stores';
 import { formatAddress } from '@/utils';
 import { getReadOnlyProvider, getUserValidatorInfo } from '@/utils/web3';
 import { ethers } from 'ethers';
@@ -162,15 +162,7 @@ const DEFAULT_PRICES: Record<string, number> = {
 // CoinGecko API URL for fetching prices
 const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
 
-// Format number as USD currency
-const formatUSD = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-};
+// Format number as currency (uses global settings store - moved inside component)
 
 interface StatCard {
   label: string;
@@ -184,7 +176,13 @@ export default function Dashboard() {
   const { wallet, disconnectWallet } = useWalletStore();
   const { transfers, fetchTransferHistory } = useTransferStore();
   const { proposals } = useGovernanceStore();
+  const { currency } = useSettingsStore();
   const [stats, setStats] = useState<StatCard[]>([]);
+
+  // Format number using currency from settings
+  const formatUSD = (amount: number): string => {
+    return formatCurrency(amount, currency);
+  };
   const [realBalance, setRealBalance] = useState<string>('0.00');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [realStakingData, setRealStakingData] = useState({ stake: '0', rewards: '0' });
