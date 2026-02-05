@@ -263,20 +263,18 @@ export default function Transfer() {
         await apiClient.updateTransferStatus(transferRecord.id, 'CONFIRMED', txHash);
       }
 
-      // Step 6: Start progress tracking drawer for cross-chain transfers
-      if (sourceChain !== destChain) {
-        startTransactionProgress({
-          id: transferRecord?.id || txHash,
-          amount: formattedAmount,
-          asset,
-          sourceChain: sourceChainName,
-          destinationChain: destChainName,
-        });
-        // Start simulating progress steps (in production, this would be replaced with real websocket updates)
-        simulateProgressSteps();
-      } else {
-        notify.success('Transfer completed successfully!');
-      }
+      // Step 6: Start progress tracking drawer for all transfers
+      const isSameChain = sourceChain === destChain;
+      startTransactionProgress({
+        id: transferRecord?.id || txHash,
+        amount: formattedAmount,
+        asset,
+        sourceChain: sourceChainName,
+        destinationChain: isSameChain ? sourceChainName : destChainName,
+        isSameChain,
+      });
+      // Start simulating progress steps (in production, this would be replaced with real websocket updates)
+      simulateProgressSteps();
 
       setAmount('');
       setRecipientAddress('');

@@ -73,6 +73,7 @@ interface TransferState {
     asset: string;
     sourceChain: string;
     destinationChain: string;
+    isSameChain?: boolean;
   }) => void;
   simulateProgressSteps: () => void;
 }
@@ -300,13 +301,21 @@ export const useTransferStore = create<TransferState>()(
       },
 
       startTransactionProgress: (data) => {
-        const steps: TransactionStep[] = [
-          { id: 'step_1', label: 'Cross-chain transfer initiated', status: 'pending' },
-          { id: 'step_2', label: `${data.sourceChain} confirmed your transaction`, status: 'pending' },
-          { id: 'step_3', label: 'ChainSync validator verified the transfer', status: 'pending' },
-          { id: 'step_4', label: 'Cross-chain settlement in progress', status: 'pending' },
-          { id: 'step_5', label: `Delivering to ${data.destinationChain}`, status: 'pending' },
-        ];
+        // Different steps for same-chain vs cross-chain transfers
+        const steps: TransactionStep[] = data.isSameChain
+          ? [
+              { id: 'step_1', label: 'Transfer initiated', status: 'pending' },
+              { id: 'step_2', label: `${data.sourceChain} processing transaction`, status: 'pending' },
+              { id: 'step_3', label: 'Transaction confirmed on network', status: 'pending' },
+              { id: 'step_4', label: 'Transfer completed', status: 'pending' },
+            ]
+          : [
+              { id: 'step_1', label: 'Cross-chain transfer initiated', status: 'pending' },
+              { id: 'step_2', label: `${data.sourceChain} confirmed your transaction`, status: 'pending' },
+              { id: 'step_3', label: 'ChainSync validator verified the transfer', status: 'pending' },
+              { id: 'step_4', label: 'Cross-chain settlement in progress', status: 'pending' },
+              { id: 'step_5', label: `Delivering to ${data.destinationChain}`, status: 'pending' },
+            ];
 
         const progress: TransactionProgressData = {
           id: data.id,
@@ -330,7 +339,12 @@ export const useTransferStore = create<TransferState>()(
         const { activeProgress, updateProgressStep } = get();
         if (!activeProgress) return;
 
-        const stepDelays = [2000, 5000, 8000, 15000, 20000]; // Delays for each step completion
+        const numSteps = activeProgress.steps.length;
+        // Faster delays for same-chain (4 steps), longer for cross-chain (5 steps)
+        const stepDelays = numSteps === 4
+          ? [1500, 3000, 4000, 2000] // Same-chain: faster completion
+          : [2000, 5000, 8000, 12000, 15000]; // Cross-chain: longer process
+
         let currentStepIndex = 0;
 
         const processNextStep = () => {
@@ -352,18 +366,19 @@ export const useTransferStore = create<TransferState>()(
           });
 
           // After delay, mark as completed and move to next
+          const delay = stepDelays[currentStepIndex] || 3000;
           setTimeout(() => {
-            const duration = `${Math.floor(stepDelays[currentStepIndex] / 1000)} seconds`;
+            const duration = `${Math.floor(delay / 1000)} seconds`;
             updateProgressStep(step.id, {
               status: 'completed',
               duration,
               explorerUrl: currentStepIndex < 2 ? 'https://etherscan.io/tx/0x...' : undefined,
-              blockNumber: currentStepIndex === 1 ? '38798476' : undefined,
+              blockNumber: currentStepIndex === 1 ? '19847562' : undefined,
             });
 
             currentStepIndex++;
             processNextStep();
-          }, stepDelays[currentStepIndex]);
+          }, delay);
         };
 
         processNextStep();
