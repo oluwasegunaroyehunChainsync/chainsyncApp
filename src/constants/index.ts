@@ -254,6 +254,89 @@ export const SUPPORTED_ASSETS: Record<string, Asset> = {
   },
 };
 
+// Chain-specific token addresses - tokens have different addresses on each chain
+export const CHAIN_TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
+  // Ethereum Mainnet (1)
+  1: {
+    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    WBTC: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    LINK: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
+    UNI: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+    AAVE: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+  },
+  // Base Mainnet (8453)
+  8453: {
+    USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Native USDC on Base
+    WETH: '0x4200000000000000000000000000000000000006', // WETH on Base
+    DAI: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', // DAI on Base
+    USDbC: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA', // Bridged USDC (USDbC)
+  },
+  // BSC Mainnet (56)
+  56: {
+    USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', // USDC on BSC
+    USDT: '0x55d398326f99059fF775485246999027B3197955', // USDT on BSC
+    DAI: '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3', // DAI on BSC
+    WETH: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', // ETH on BSC
+    WBTC: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', // BTCB on BSC
+    BUSD: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // BUSD
+  },
+  // Polygon (137)
+  137: {
+    USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // Native USDC on Polygon
+    'USDC.e': '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Bridged USDC.e
+    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', // USDT on Polygon
+    DAI: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063', // DAI on Polygon
+    WETH: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', // WETH on Polygon
+    WBTC: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', // WBTC on Polygon
+  },
+  // Arbitrum One (42161)
+  42161: {
+    USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // Native USDC on Arbitrum
+    'USDC.e': '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', // Bridged USDC.e
+    USDT: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', // USDT on Arbitrum
+    DAI: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', // DAI on Arbitrum
+    WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', // WETH on Arbitrum
+    WBTC: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f', // WBTC on Arbitrum
+  },
+  // Sepolia Testnet (11155111)
+  11155111: {
+    USDC: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', // Sepolia USDC
+    WETH: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', // Sepolia WETH
+  },
+  // Arbitrum Sepolia (421614)
+  421614: {
+    USDC: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', // Arbitrum Sepolia USDC
+  },
+};
+
+/**
+ * Get the token address for a specific chain
+ * Falls back to Ethereum mainnet address if chain-specific address not found
+ */
+export function getTokenAddressForChain(symbol: string, chainId: number): string {
+  // First check chain-specific addresses
+  const chainAddresses = CHAIN_TOKEN_ADDRESSES[chainId];
+  if (chainAddresses && chainAddresses[symbol]) {
+    return chainAddresses[symbol];
+  }
+
+  // For CST token, use the contract addresses
+  if (symbol === 'CST') {
+    return getCSTTokenAddress(chainId);
+  }
+
+  // Fallback to the default (Ethereum mainnet) address from SUPPORTED_ASSETS
+  const asset = SUPPORTED_ASSETS[symbol];
+  if (asset) {
+    return asset.address;
+  }
+
+  throw new Error(`Token ${symbol} not supported`);
+}
+
 export const TRANSFER_FEES = {
   BASE_FEE_PERCENT: 0.1,
   PRIORITY_FEE_PERCENT: 0.05,

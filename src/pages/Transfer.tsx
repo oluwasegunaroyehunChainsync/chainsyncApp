@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useWalletStore, useTransferStore, notify } from '@/stores';
-import { SUPPORTED_CHAINS, SUPPORTED_ASSETS, CONTRACT_ADDRESSES, getCSTTokenAddress } from '@/constants';
+import { SUPPORTED_CHAINS, SUPPORTED_ASSETS, CONTRACT_ADDRESSES, getTokenAddressForChain } from '@/constants';
 import { ChainId } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -199,13 +199,10 @@ export default function Transfer() {
     const contractAddresses = getContractAddresses(Number(sourceChain));
 
     try {
-      // Get token address - use chain-specific address for CST
-      let tokenAddress: string;
-      if (asset === 'CST') {
-        tokenAddress = getCSTTokenAddress(Number(sourceChain));
-      } else {
-        tokenAddress = SUPPORTED_ASSETS[asset as keyof typeof SUPPORTED_ASSETS]?.address || '0x0000000000000000000000000000000000000000';
-      }
+      // Get token address - use chain-specific address for all tokens
+      // Each chain has different contract addresses for the same token (e.g., USDC on Base vs Ethereum)
+      const tokenAddress = getTokenAddressForChain(asset, Number(sourceChain));
+      console.log(`Using token address for ${asset} on chain ${sourceChain}: ${tokenAddress}`);
 
       // Format amount to ensure it's a valid decimal string (e.g., "5" or "5.0")
       const formattedAmount = parseFloat(amount).toString();
