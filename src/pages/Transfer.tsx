@@ -5,6 +5,7 @@ import { ChainId } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import TransactionProgressDrawer from '@/components/TransactionProgressDrawer';
 import {
   approveToken,
   checkAllowance,
@@ -89,7 +90,16 @@ const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
 
 export default function Transfer() {
   const { wallet } = useWalletStore();
-  const { initiateCrossChainTransfer, initiateSameChainTransfer, isLoading } = useTransferStore();
+  const {
+    initiateCrossChainTransfer,
+    initiateSameChainTransfer,
+    isLoading,
+    activeProgress,
+    isProgressDrawerOpen,
+    closeProgressDrawer,
+    startTransactionProgress,
+    simulateProgressSteps,
+  } = useTransferStore();
   const [sourceChain, setSourceChain] = useState<ChainId>(1 as ChainId); // Default to Ethereum Mainnet
   const [destChain, setDestChain] = useState<ChainId>(1 as ChainId); // Default to Ethereum Mainnet (same-chain transfer)
   const [asset, setAsset] = useState('CST'); // Default to CST token for testing
@@ -253,7 +263,21 @@ export default function Transfer() {
         await apiClient.updateTransferStatus(transferRecord.id, 'CONFIRMED', txHash);
       }
 
-      notify.success('Transfer completed successfully!');
+      // Step 6: Start progress tracking drawer for cross-chain transfers
+      if (sourceChain !== destChain) {
+        startTransactionProgress({
+          id: transferRecord?.id || txHash,
+          amount: formattedAmount,
+          asset,
+          sourceChain: sourceChainName,
+          destinationChain: destChainName,
+        });
+        // Start simulating progress steps (in production, this would be replaced with real websocket updates)
+        simulateProgressSteps();
+      } else {
+        notify.success('Transfer completed successfully!');
+      }
+
       setAmount('');
       setRecipientAddress('');
     } catch (error: any) {
@@ -479,6 +503,13 @@ export default function Transfer() {
           </Card.Body>
         </Card>
       </div>
+
+      {/* Transaction Progress Drawer */}
+      <TransactionProgressDrawer
+        isOpen={isProgressDrawerOpen}
+        onClose={closeProgressDrawer}
+        transaction={activeProgress}
+      />
     </div>
   );
 }

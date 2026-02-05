@@ -4,12 +4,40 @@ import { Transfer, TransferStatus } from '@/types';
 import { generateId } from '@/utils';
 import { apiClient } from '@/lib/api';
 
+// Transaction progress step interface
+export interface TransactionStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  timestamp?: number;
+  duration?: string;
+  txHash?: string;
+  blockNumber?: string;
+  explorerUrl?: string;
+}
+
+// Active transaction progress data
+export interface TransactionProgressData {
+  id: string;
+  amount: string;
+  asset: string;
+  sourceChain: string;
+  destinationChain: string;
+  steps: TransactionStep[];
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  startTime: number;
+}
+
 interface TransferState {
   transfers: Transfer[];
   currentTransfer: Transfer | null;
   isLoading: boolean;
   error: string | null;
   quote: any | null;
+
+  // Transaction progress tracking
+  activeProgress: TransactionProgressData | null;
+  isProgressDrawerOpen: boolean;
 
   // Get quote from backend
   getQuote: (sourceChainId: number, destinationChainId: number, contractAddress: string, amount: string) => Promise<void>;
@@ -33,6 +61,20 @@ interface TransferState {
   getTransferHistory: () => Transfer[];
   getTransferById: (id: string) => Transfer | undefined;
   clearError: () => void;
+
+  // Transaction progress drawer controls
+  openProgressDrawer: () => void;
+  closeProgressDrawer: () => void;
+  setActiveProgress: (progress: TransactionProgressData | null) => void;
+  updateProgressStep: (stepId: string, updates: Partial<TransactionStep>) => void;
+  startTransactionProgress: (data: {
+    id: string;
+    amount: string;
+    asset: string;
+    sourceChain: string;
+    destinationChain: string;
+  }) => void;
+  simulateProgressSteps: () => void;
 }
 
 export const useTransferStore = create<TransferState>()(
@@ -43,6 +85,8 @@ export const useTransferStore = create<TransferState>()(
       isLoading: false,
       error: null,
       quote: null,
+      activeProgress: null,
+      isProgressDrawerOpen: false,
 
       getQuote: async (sourceChainId, destinationChainId, contractAddress, amount) => {
         set({ isLoading: true, error: null });
@@ -226,6 +270,103 @@ export const useTransferStore = create<TransferState>()(
 
       clearError: () => {
         set({ error: null });
+      },
+
+      // Transaction progress drawer controls
+      openProgressDrawer: () => {
+        set({ isProgressDrawerOpen: true });
+      },
+
+      closeProgressDrawer: () => {
+        set({ isProgressDrawerOpen: false });
+      },
+
+      setActiveProgress: (progress: TransactionProgressData | null) => {
+        set({ activeProgress: progress });
+      },
+
+      updateProgressStep: (stepId: string, updates: Partial<TransactionStep>) => {
+        set((state) => {
+          if (!state.activeProgress) return state;
+          return {
+            activeProgress: {
+              ...state.activeProgress,
+              steps: state.activeProgress.steps.map((step) =>
+                step.id === stepId ? { ...step, ...updates } : step
+              ),
+            },
+          };
+        });
+      },
+
+      startTransactionProgress: (data) => {
+        const steps: TransactionStep[] = [
+          { id: 'step_1', label: 'Cross-chain transfer initiated', status: 'pending' },
+          { id: 'step_2', label: `${data.sourceChain} confirmed your transaction`, status: 'pending' },
+          { id: 'step_3', label: 'ChainSync validator verified the transfer', status: 'pending' },
+          { id: 'step_4', label: 'Cross-chain settlement in progress', status: 'pending' },
+          { id: 'step_5', label: `Delivering to ${data.destinationChain}`, status: 'pending' },
+        ];
+
+        const progress: TransactionProgressData = {
+          id: data.id,
+          amount: data.amount,
+          asset: data.asset,
+          sourceChain: data.sourceChain,
+          destinationChain: data.destinationChain,
+          steps,
+          status: 'processing',
+          startTime: Date.now(),
+        };
+
+        set({
+          activeProgress: progress,
+          isProgressDrawerOpen: true,
+        });
+      },
+
+      // Simulate progress steps for demo/testing - can be replaced with real websocket updates
+      simulateProgressSteps: () => {
+        const { activeProgress, updateProgressStep } = get();
+        if (!activeProgress) return;
+
+        const stepDelays = [2000, 5000, 8000, 15000, 20000]; // Delays for each step completion
+        let currentStepIndex = 0;
+
+        const processNextStep = () => {
+          const step = activeProgress.steps[currentStepIndex];
+          if (!step) {
+            // All steps completed
+            set((state) => ({
+              activeProgress: state.activeProgress
+                ? { ...state.activeProgress, status: 'completed' }
+                : null,
+            }));
+            return;
+          }
+
+          // Mark current step as in_progress
+          updateProgressStep(step.id, {
+            status: 'in_progress',
+            timestamp: Date.now(),
+          });
+
+          // After delay, mark as completed and move to next
+          setTimeout(() => {
+            const duration = `${Math.floor(stepDelays[currentStepIndex] / 1000)} seconds`;
+            updateProgressStep(step.id, {
+              status: 'completed',
+              duration,
+              explorerUrl: currentStepIndex < 2 ? 'https://etherscan.io/tx/0x...' : undefined,
+              blockNumber: currentStepIndex === 1 ? '38798476' : undefined,
+            });
+
+            currentStepIndex++;
+            processNextStep();
+          }, stepDelays[currentStepIndex]);
+        };
+
+        processNextStep();
       },
     }),
     {
