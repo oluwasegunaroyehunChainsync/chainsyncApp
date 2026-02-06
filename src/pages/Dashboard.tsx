@@ -321,6 +321,7 @@ export default function Dashboard() {
       const allBalances: TokenBalance[] = [];
 
       console.log('Fetching token balances across all chains for:', wallet.address);
+      console.log('Chains to query:', Object.keys(CHAIN_TOKEN_ADDRESSES).map(id => `${id} (${CHAIN_TOKEN_CONFIG[parseInt(id)]?.name || 'Unknown'})`).join(', '));
 
       // Query all chains in parallel
       const chainPromises = Object.entries(CHAIN_TOKEN_ADDRESSES).map(async ([chainIdStr, chainTokens]) => {
@@ -328,8 +329,10 @@ export default function Dashboard() {
         const chainConfig = CHAIN_TOKEN_CONFIG[chainId];
         const chainName = chainConfig?.name || `Chain ${chainId}`;
 
+        console.log(`[${chainName}] Starting balance query...`);
         try {
           const provider = getReadOnlyProvider(chainId);
+          console.log(`[${chainName}] Provider created, fetching balances...`);
 
           // Also fetch native token balance for this chain
           try {
@@ -375,11 +378,12 @@ export default function Dashboard() {
                 });
               }
             } catch (err) {
-              console.warn(`Failed to fetch ${symbol} balance on ${chainName}:`, err);
+              console.warn(`[${chainName}] Failed to fetch ${symbol}:`, err);
             }
           }
+          console.log(`[${chainName}] Query completed successfully`);
         } catch (err) {
-          console.error(`Failed to query chain ${chainName}:`, err);
+          console.error(`[${chainName}] FAILED to query chain:`, err);
         }
       });
 
