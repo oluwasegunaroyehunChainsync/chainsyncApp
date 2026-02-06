@@ -38,10 +38,12 @@ const TOKEN_ADDRESS_TO_SYMBOL: Record<string, string> = {
   '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174': 'USDC.e',
   '0xc2132D05D31c914a87C6611C10748AEb04B58e8F': 'USDT',
   // Arbitrum
+  '0x912CE59144191C1204E64559FE8253a0e49E6548': 'ARB',
   '0xaf88d065e77c8cC2239327C5EDb3A432268e5831': 'USDC',
   '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8': 'USDC.e',
   '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9': 'USDT',
   '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1': 'WETH',
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1': 'DAI',
 };
 
 // Convert token address to symbol for display
@@ -151,12 +153,23 @@ const CHAIN_TOKEN_CONFIG: Record<number, { symbol: string; name: string; coingec
 
 // Default prices as fallback (will be updated from CoinGecko API)
 const DEFAULT_PRICES: Record<string, number> = {
+  // Native tokens
   ethereum: 3200,
   'matic-network': 0.85,
   binancecoin: 300,
   'avalanche-2': 35,
   fantom: 0.45,
   zetachain: 0.75,
+  // ERC20 tokens
+  'usd-coin': 1,
+  tether: 1,
+  dai: 1,
+  'binance-usd': 1,
+  arbitrum: 0.75,
+  bitcoin: 95000,
+  chainlink: 15,
+  uniswap: 8,
+  aave: 180,
 };
 
 // CoinGecko API URL for fetching prices
@@ -322,8 +335,9 @@ export default function Dashboard() {
           try {
             const nativeBalance = await provider.getBalance(wallet.address);
             const formattedNative = ethers.formatEther(nativeBalance);
+            console.log(`Native ${chainConfig?.symbol || 'ETH'} on ${chainName}: ${formattedNative}`);
             if (parseFloat(formattedNative) > 0.000001) {
-              const nativePrice = tokenPrices[chainConfig?.coingeckoId || 'ethereum'] || 1;
+              const nativePrice = tokenPrices[chainConfig?.coingeckoId || 'ethereum'] || DEFAULT_PRICES[chainConfig?.coingeckoId || 'ethereum'] || 1;
               allBalances.push({
                 symbol: chainConfig?.symbol || 'ETH',
                 name: `${chainConfig?.symbol || 'ETH'} (Native)`,
@@ -347,7 +361,8 @@ export default function Dashboard() {
               const formattedBalance = ethers.formatUnits(balance, tokenInfo.decimals);
 
               if (parseFloat(formattedBalance) > 0.000001) {
-                const price = tokenPrices[tokenInfo.coingeckoId] || 1;
+                const price = tokenPrices[tokenInfo.coingeckoId] || DEFAULT_PRICES[tokenInfo.coingeckoId] || 1;
+                console.log(`Found ${symbol} on ${chainName}: ${formattedBalance} (price: $${price})`);
                 allBalances.push({
                   symbol,
                   name: tokenInfo.name,
@@ -360,7 +375,7 @@ export default function Dashboard() {
                 });
               }
             } catch (err) {
-              // Silently skip failed token queries
+              console.warn(`Failed to fetch ${symbol} balance on ${chainName}:`, err);
             }
           }
         } catch (err) {
@@ -393,8 +408,13 @@ export default function Dashboard() {
     const fetchPrices = async () => {
       setIsLoadingPrices(true);
       try {
-        // Get unique CoinGecko IDs from all supported chains
-        const coingeckoIds = [...new Set(Object.values(CHAIN_TOKEN_CONFIG).map(c => c.coingeckoId))];
+        // Get unique CoinGecko IDs from BOTH native tokens AND ERC20 tokens
+        const nativeIds = Object.values(CHAIN_TOKEN_CONFIG).map(c => c.coingeckoId);
+        const erc20Ids = Object.values(CHAIN_TOKEN_ADDRESSES).flatMap(chainTokens =>
+          Object.values(chainTokens).map(token => token.coingeckoId)
+        );
+        const coingeckoIds = [...new Set([...nativeIds, ...erc20Ids])];
+        console.log('Fetching prices for tokens:', coingeckoIds);
         const idsParam = coingeckoIds.join(',');
 
         const response = await fetch(
