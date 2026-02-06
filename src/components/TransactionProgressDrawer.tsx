@@ -55,10 +55,13 @@ export default function TransactionProgressDrawer({
   onClose,
   transaction,
 }: TransactionProgressDrawerProps) {
-  if (!transaction) return null;
+  // Don't render anything if not open AND no transaction
+  // But we need to render the hidden drawer if isOpen is true (even without transaction)
+  // to allow for animation
+  if (!isOpen && !transaction) return null;
 
-  const completedSteps = transaction.steps.filter(s => s.status === 'completed').length;
-  const totalSteps = transaction.steps.length;
+  const completedSteps = transaction?.steps.filter(s => s.status === 'completed').length ?? 0;
+  const totalSteps = transaction?.steps.length ?? 1;
   const progressPercent = Math.round((completedSteps / totalSteps) * 100);
 
   return (
@@ -92,6 +95,16 @@ export default function TransactionProgressDrawer({
           </button>
         </div>
 
+        {/* Loading state if no transaction yet */}
+        {!transaction ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">Loading transaction details...</p>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Transaction Summary */}
         <div className="px-6 py-5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Amount</p>
@@ -281,6 +294,8 @@ export default function TransactionProgressDrawer({
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
     </>
   );
