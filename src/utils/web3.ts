@@ -141,6 +141,7 @@ export function getReadOnlyProvider(chainId?: number): ethers.JsonRpcProvider {
 /**
  * Check if user has approved token spending
  * Uses direct RPC connection for reliable read operations
+ * Returns 0 on RPC failure (safe: will trigger approval flow)
  */
 export async function checkAllowance(
   tokenAddress: string,
@@ -150,13 +151,20 @@ export async function checkAllowance(
   const addresses = getContractAddresses();
   const spender = spenderAddress || addresses.chainSync;
 
-  // Use direct RPC provider for read-only operations
-  // This avoids issues with MetaMask network switching
-  const provider = getReadOnlyProvider();
+  try {
+    // Use direct RPC provider for read-only operations
+    // This avoids issues with MetaMask network switching
+    const provider = getReadOnlyProvider();
 
-  const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-  const allowance = await tokenContract.allowance(ownerAddress, spender);
-  return allowance;
+    const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+    const allowance = await tokenContract.allowance(ownerAddress, spender);
+    return allowance;
+  } catch (error) {
+    // If RPC fails, return 0 to trigger approval flow
+    // This is safe because approving again is a no-op if already approved
+    console.warn('Failed to check allowance (RPC error), assuming 0:', error);
+    return 0n;
+  }
 }
 
 /**
