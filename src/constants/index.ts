@@ -177,9 +177,19 @@ export const CONTRACT_ADDRESSES: Record<number, {
   },
 };
 
-// Supported ERC20 tokens for transfers on ChainSync
-// Note: Native ETH is not supported - use WETH (Wrapped Ether) instead
+// Supported tokens for transfers on ChainSync
+// Native ETH transfer behavior:
+//   - Same-chain: Direct ETH send (no wrapping) - simpler and cheaper
+//   - Cross-chain: Auto-wrap to WETH then transfer via ChainSync bridge
 export const SUPPORTED_ASSETS: Record<string, Asset> = {
+  ETH: {
+    symbol: 'ETH',
+    name: 'Ether',
+    decimals: 18,
+    address: '0x0000000000000000000000000000000000000000', // Native ETH (direct send for same-chain, wraps to WETH for cross-chain)
+    balance: '0',
+    usdPrice: 3200,
+  },
   CST: {
     symbol: 'CST',
     name: 'ChainSync Token',
@@ -255,9 +265,11 @@ export const SUPPORTED_ASSETS: Record<string, Asset> = {
 };
 
 // Chain-specific token addresses - tokens have different addresses on each chain
+// ETH entries point to WETH contract addresses (used for cross-chain auto-wrap only)
 export const CHAIN_TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
   // Ethereum Mainnet (1)
   1: {
+    ETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH contract for auto-wrap
     USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
     DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
@@ -269,17 +281,18 @@ export const CHAIN_TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
   },
   // Base Mainnet (8453)
   8453: {
+    ETH: '0x4200000000000000000000000000000000000006', // WETH contract for auto-wrap on Base
     USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Native USDC on Base
     WETH: '0x4200000000000000000000000000000000000006', // WETH on Base
     DAI: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', // DAI on Base
     USDbC: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA', // Bridged USDC (USDbC)
   },
-  // BSC Mainnet (56)
+  // BSC Mainnet (56) - Note: BSC uses BNB as native, ETH is wrapped
   56: {
     USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', // USDC on BSC
     USDT: '0x55d398326f99059fF775485246999027B3197955', // USDT on BSC
     DAI: '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3', // DAI on BSC
-    WETH: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', // ETH on BSC
+    WETH: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', // ETH on BSC (Binance-peg)
     WBTC: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', // BTCB on BSC
     BUSD: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', // BUSD
   },
@@ -303,6 +316,7 @@ export const CHAIN_TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
   },
   // Sepolia Testnet (11155111)
   11155111: {
+    ETH: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', // WETH contract for auto-wrap on Sepolia
     USDC: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', // Sepolia USDC
     WETH: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', // Sepolia WETH
   },

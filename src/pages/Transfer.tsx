@@ -13,6 +13,10 @@ import {
   executeCrossChainTransfer,
   setCurrentChainId,
   getContractAddresses,
+  isNativeETH,
+  wrapETH,
+  getNativeETHBalance,
+  sendNativeETH,
 } from '@/utils/web3';
 import { ethers } from 'ethers';
 import { apiClient } from '@/lib/api';
@@ -24,19 +28,22 @@ const TESTNET_CHAINS = Object.entries(SUPPORTED_CHAINS).filter(
 
 // Chain-specific token availability mapping
 // Each chain ID maps to an array of token symbols available on that chain
+// ETH transfer behavior:
+//   - Same-chain: Direct ETH send (no wrapping) - simpler and cheaper
+//   - Cross-chain: Auto-wrap to WETH then transfer via ChainSync
 const CHAIN_TOKENS: Record<number, string[]> = {
-  // Ethereum Mainnet - All tokens available
-  1: ['CST', 'WETH', 'USDC', 'USDT', 'DAI', 'WBTC', 'LINK', 'UNI', 'AAVE'],
-  // Base Mainnet - Limited tokens (USDC is native, no USDT)
-  8453: ['CST', 'USDC'],
-  // BSC Mainnet - Binance-Peg tokens
+  // Ethereum Mainnet - All tokens available (ETH is native, auto-wraps to WETH)
+  1: ['ETH', 'CST', 'WETH', 'USDC', 'USDT', 'DAI', 'WBTC', 'LINK', 'UNI', 'AAVE'],
+  // Base Mainnet - ETH native, limited tokens
+  8453: ['ETH', 'CST', 'USDC'],
+  // BSC Mainnet - Binance-Peg tokens (no native ETH on BSC)
   56: ['CST', 'USDC', 'USDT'],
   // Polygon - Not yet deployed but ready
   137: ['CST', 'USDC', 'USDT', 'DAI', 'WETH'],
   // Arbitrum - Not yet deployed but ready
   42161: ['CST', 'USDC', 'USDT', 'DAI', 'WETH'],
-  // Testnets - CST only for testing
-  11155111: ['CST'], // Sepolia
+  // Testnets - ETH and CST for testing
+  11155111: ['ETH', 'CST'], // Sepolia
   421614: ['CST'],   // Arbitrum Sepolia
   31337: ['CST'],    // Hardhat local
 };
@@ -199,18 +206,92 @@ export default function Transfer() {
     const contractAddresses = getContractAddresses(Number(sourceChain));
 
     try {
-      // Get token address - use chain-specific address for all tokens
-      // Each chain has different contract addresses for the same token (e.g., USDC on Base vs Ethereum)
-      const tokenAddress = getTokenAddressForChain(asset, Number(sourceChain));
-      console.log(`Using token address for ${asset} on chain ${sourceChain}: ${tokenAddress}`);
-
       // Format amount to ensure it's a valid decimal string (e.g., "5" or "5.0")
       const formattedAmount = parseFloat(amount).toString();
+
+      // Check if this is a native ETH transfer
+      const isETHTransfer = isNativeETH(asset);
+      const isSameChain = sourceChain === destChain;
+
+      // SPECIAL CASE: Same-chain native ETH transfer - send directly without wrapping
+      // This is simpler, faster, and cheaper than wrapping to WETH
+      if (isETHTransfer && isSameChain) {
+        console.log('Same-chain native ETH transfer - using direct send');
+
+        // Check if user has enough ETH
+        const ethBalance = await getNativeETHBalance(wallet.address, Number(sourceChain));
+        if (parseFloat(ethBalance) < parseFloat(formattedAmount)) {
+          throw new Error(`Insufficient ETH balance. You have ${parseFloat(ethBalance).toFixed(4)} ETH but need ${formattedAmount} ETH`);
+        }
+
+        // Create transfer record in backend (for tracking)
+        notify.info('Creating transfer record...');
+        const transferRecord = await initiateSameChainTransfer(
+          Number(sourceChain),
+          '0x0000000000000000000000000000000000000000', // Native ETH has zero address
+          formattedAmount,
+          recipientAddress,
+          contractAddresses.chainSync
+        );
+
+        // Send native ETH directly (no wrapping needed)
+        notify.info('Please confirm the ETH transfer in MetaMask...');
+        const txHash = await sendNativeETH(recipientAddress, formattedAmount);
+
+        notify.success(`Transfer submitted! Transaction: ${txHash.substring(0, 10)}...`);
+
+        // Update backend with transaction hash
+        if (transferRecord?.id) {
+          await apiClient.updateTransferStatus(transferRecord.id, 'CONFIRMED', txHash);
+        }
+
+        // Start progress tracking
+        startTransactionProgress({
+          id: transferRecord?.id || txHash,
+          amount: formattedAmount,
+          asset,
+          sourceChain: sourceChainName,
+          destinationChain: sourceChainName,
+          isSameChain: true,
+        });
+        simulateProgressSteps();
+
+        setAmount('');
+        setRecipientAddress('');
+        return; // Exit early - transfer complete
+      }
+
+      // STANDARD FLOW: ERC20 tokens OR cross-chain ETH (requires wrapping)
+      // Get the token address to use for the transfer
+      // For cross-chain ETH: this is the WETH contract address (used for wrapping and transfer)
+      // For other tokens: this is the token's contract address on the source chain
+      let tokenAddress: string;
+      if (isETHTransfer) {
+        // Cross-chain ETH - need to wrap to WETH first
+        tokenAddress = getTokenAddressForChain('ETH', Number(sourceChain));
+        console.log(`Cross-chain ETH transfer - will auto-wrap to WETH at ${tokenAddress}`);
+      } else {
+        tokenAddress = getTokenAddressForChain(asset, Number(sourceChain));
+        console.log(`Using token address for ${asset} on chain ${sourceChain}: ${tokenAddress}`);
+      }
+
+      // For cross-chain ETH transfers, wrap to WETH first
+      if (isETHTransfer && !isSameChain) {
+        // Check if user has enough ETH
+        const ethBalance = await getNativeETHBalance(wallet.address, Number(sourceChain));
+        if (parseFloat(ethBalance) < parseFloat(formattedAmount)) {
+          throw new Error(`Insufficient ETH balance. You have ${parseFloat(ethBalance).toFixed(4)} ETH but need ${formattedAmount} ETH`);
+        }
+
+        notify.info('Wrapping ETH to WETH for cross-chain transfer... Please confirm in MetaMask');
+        await wrapETH(tokenAddress, formattedAmount);
+        notify.success('ETH wrapped to WETH successfully!');
+      }
 
       // Step 1: Create transfer record in backend (for tracking)
       notify.info('Creating transfer record...');
       let transferRecord;
-      if (sourceChain === destChain) {
+      if (isSameChain) {
         transferRecord = await initiateSameChainTransfer(
           Number(sourceChain),
           tokenAddress,
@@ -229,10 +310,10 @@ export default function Transfer() {
         );
       }
 
-      // Step 2: Check token allowance
+      // Step 2: Check token allowance (WETH for ETH transfers, token address for others)
       notify.info('Checking token allowance...');
-      // Use correct decimals for each token (USDT/USDC = 6, others = 18)
-      const tokenDecimals = SUPPORTED_ASSETS[asset as keyof typeof SUPPORTED_ASSETS]?.decimals || 18;
+      // Use correct decimals for each token (USDT/USDC = 6, ETH/WETH = 18, others = 18)
+      const tokenDecimals = isETHTransfer ? 18 : (SUPPORTED_ASSETS[asset as keyof typeof SUPPORTED_ASSETS]?.decimals || 18);
       const amountBigInt = ethers.parseUnits(formattedAmount, tokenDecimals);
       const allowance = await checkAllowance(tokenAddress, wallet.address, contractAddresses.chainSync);
 
@@ -247,7 +328,7 @@ export default function Transfer() {
       notify.info('Please confirm the transfer in MetaMask...');
       let txHash: string;
 
-      if (sourceChain === destChain) {
+      if (isSameChain) {
         txHash = await executeSameChainTransfer(tokenAddress, recipientAddress, formattedAmount, tokenDecimals);
       } else {
         txHash = await executeCrossChainTransfer(tokenAddress, recipientAddress, formattedAmount, Number(destChain), tokenDecimals);
@@ -261,7 +342,6 @@ export default function Transfer() {
       }
 
       // Step 6: Start progress tracking drawer for all transfers
-      const isSameChain = sourceChain === destChain;
       startTransactionProgress({
         id: transferRecord?.id || txHash,
         amount: formattedAmount,

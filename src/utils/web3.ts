@@ -14,6 +14,13 @@ const ERC20_ABI = [
   'function allowance(address owner, address spender) external view returns (uint256)',
 ];
 
+// WETH contract ABI for wrapping/unwrapping ETH
+const WETH_ABI = [
+  'function deposit() external payable',
+  'function withdraw(uint256 amount) external',
+  'function balanceOf(address account) external view returns (uint256)',
+];
+
 const VALIDATOR_REGISTRY_ABI = [
   'function getValidator(address validator) external view returns (address validatorAddress, uint256 stake, uint256 joinedAt, bool active, uint256 slashAmount)',
   'function getValidatorStake(address validator) external view returns (uint256)',
@@ -409,4 +416,90 @@ export async function getUserValidatorInfo(userAddress: string, chainId: number 
       rewards: '0',
     };
   }
+}
+
+/**
+ * Check if the asset symbol represents native ETH
+ */
+export function isNativeETH(symbol: string): boolean {
+  return symbol === 'ETH';
+}
+
+/**
+ * Get native ETH balance for a user
+ * @param userAddress - The user's wallet address
+ * @param chainId - Optional chain ID (defaults to current chain)
+ */
+export async function getNativeETHBalance(userAddress: string, chainId?: number): Promise<string> {
+  const provider = getReadOnlyProvider(chainId);
+  const balance = await provider.getBalance(userAddress);
+  return ethers.formatEther(balance);
+}
+
+/**
+ * Wrap native ETH to WETH
+ * This deposits ETH into the WETH contract and receives WETH tokens
+ * @param wethAddress - The WETH contract address for the current chain
+ * @param amount - The amount of ETH to wrap (as a string, e.g., "1.5")
+ * @returns The transaction hash
+ */
+export async function wrapETH(wethAddress: string, amount: string): Promise<string> {
+  const signer = await getSigner();
+  if (!signer) throw new Error('No signer available');
+
+  const wethContract = new ethers.Contract(wethAddress, WETH_ABI, signer);
+  const amountWei = ethers.parseEther(amount);
+
+  // Call deposit() with the ETH value
+  const tx = await wethContract.deposit({ value: amountWei });
+  const receipt = await tx.wait();
+
+  console.log(`Wrapped ${amount} ETH to WETH. TX: ${receipt.hash}`);
+  return receipt.hash;
+}
+
+/**
+ * Unwrap WETH back to native ETH
+ * This withdraws WETH from the contract and receives native ETH
+ * @param wethAddress - The WETH contract address for the current chain
+ * @param amount - The amount of WETH to unwrap (as a string, e.g., "1.5")
+ * @returns The transaction hash
+ */
+export async function unwrapWETH(wethAddress: string, amount: string): Promise<string> {
+  const signer = await getSigner();
+  if (!signer) throw new Error('No signer available');
+
+  const wethContract = new ethers.Contract(wethAddress, WETH_ABI, signer);
+  const amountWei = ethers.parseEther(amount);
+
+  const tx = await wethContract.withdraw(amountWei);
+  const receipt = await tx.wait();
+
+  console.log(`Unwrapped ${amount} WETH to ETH. TX: ${receipt.hash}`);
+  return receipt.hash;
+}
+
+/**
+ * Send native ETH directly to a recipient (no wrapping needed)
+ * This is used for same-chain ETH transfers - simpler and cheaper than wrapping
+ * @param recipientAddress - The recipient wallet address
+ * @param amount - The amount of ETH to send (as a string, e.g., "1.5")
+ * @returns The transaction hash
+ */
+export async function sendNativeETH(recipientAddress: string, amount: string): Promise<string> {
+  const signer = await getSigner();
+  if (!signer) throw new Error('No signer available');
+
+  const amountWei = ethers.parseEther(amount);
+
+  const tx = await signer.sendTransaction({
+    to: recipientAddress,
+    value: amountWei,
+  });
+
+  const receipt = await tx.wait();
+  if (!receipt) throw new Error('Transaction failed - no receipt');
+
+  console.log(`Sent ${amount} ETH to ${recipientAddress}. TX: ${receipt.hash}`);
+  return receipt.hash;
 }
