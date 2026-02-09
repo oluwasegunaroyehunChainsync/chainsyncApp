@@ -5,7 +5,7 @@ export const SUPPORTED_CHAINS: Record<number, Chain> = {
     id: 1,
     name: 'Ethereum',
     symbol: 'ETH',
-    rpc: 'https://rpc.ankr.com/eth',
+    rpc: 'https://rpc.ankr.com/eth/51c635de48d8fa9c44e9a8684208b65913be871f023fdb57a9e4d8b983e0d8d1',
     explorer: 'https://etherscan.io',
     nativeToken: 'ETH',
     decimals: 18,
